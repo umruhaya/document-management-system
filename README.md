@@ -17,6 +17,15 @@ bun install
 bun dev
 ```
 
+4. Also start the postgreSQL service using docker if you prefer docker for running PostgreSQL.
+
+```bash
+cd docker
+docker compose up -d db
+```
+
+The `-d` flag will run the service in `detached mode`
+
 ## Contributuing Guide
 
 ### Consistent Formatting
@@ -52,4 +61,30 @@ Homebrew (Mac):
 
 ```bash
 brew install dprint
+```
+
+## Database Migrations
+
+### Auto Generating Migration File
+
+```bash
+bun run db:generate --name "create_user_table"
+```
+
+`--name` specifies the name of the migration file.
+
+### Prototyping with Push
+
+```bash
+bun run db:push
+```
+
+This will run the migrations, but before that it will show you the DDL query generated for migrations and asks you for confirmation. It is a good idea to review it. sometimes it can creates queries that drop tables and you may not want that for your `production` database :expressionless:
+
+- Note that this does not actually creates any record of migration in the database table `migrations` even tho it actually created a migration. Run `bun run db:migrate` to not only run the migration but also record it. you do not have run `db:push` command as it automatically migrates to latest migration but it does not show what SQL DDL queries it is running so I prefer to use `db:push` first to review the command and then follow it by `db:migrate`
+
+### Run Database Studio
+
+```bash
+bun run db:studio
 ```

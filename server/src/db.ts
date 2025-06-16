@@ -9,7 +9,7 @@ const PASSWORD = env.DATABASE_PASSWORD
 const PORT = env.DATABASE_PORT
 const USERNAME = env.DATABASE_USERNAME
 
-const databaseConnectionString = `postgres://${USERNAME}:${PASSWORD}@${HOST}:${PORT}/${NAME}?sslmode=require`
+const databaseConnectionString = `postgres://${USERNAME}:${PASSWORD}@${HOST}:${PORT}/${NAME}?sslmode=prefer`
 
 const queryClient = postgres(databaseConnectionString)
 

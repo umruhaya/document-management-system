@@ -1,7 +1,11 @@
 {
 	"name": "server",
 	"scripts": {
-		"dev": "bun run --hot src/index.ts"
+		"dev": "bun run --hot src/index.ts",
+		"db:generate": "drizzle-kit generate",
+		"db:migrate": "drizzle-kit migrate",
+		"db:push": "drizzle-kit push",
+		"db:studio": "drizzle-kit studio --verbose"
 	},
 	"dependencies": {
 		"@hono/swagger-ui": "^0.5.2",
