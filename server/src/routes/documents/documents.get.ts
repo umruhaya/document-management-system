@@ -25,7 +25,7 @@ const route = createRoute({
 			version: z.coerce.number().optional(),
 			limit: z.coerce.number().int().positive().max(50).default(10),
 			offset: z.coerce.number().int().nonnegative().default(0),
-			exlcudeContent: z.coerce.boolean().default(true).optional(),
+			exlcudeContent: z.literal('true').default('true').optional(),
 		}),
 	},
 	responses: {
@@ -53,6 +53,8 @@ const handler: AppRouteHandler<typeof route> = async (c) => {
 	const { userId } = c.get('jwtPayload')
 	const query = c.req.valid('query')
 
+	console.log(query.exlcudeContent)
+
 	const documents = await db.selectDistinctOn([table.documents.id], {
 		id: table.documents.id,
 		title: table.documents.title,
@@ -60,7 +62,7 @@ const handler: AppRouteHandler<typeof route> = async (c) => {
 		fileType: table.documents.fileType,
 		version: table.documents.version,
 		size: table.documents.size,
-		content: query.exlcudeContent ? table.documents.content : sql`SELECT ""`,
+		content: query.exlcudeContent ? sql`''` : table.documents.content,
 		tags: table.documents.tags,
 		createdAt: table.documents.createdAt,
 		updatedAt: table.documents.updatedAt,
