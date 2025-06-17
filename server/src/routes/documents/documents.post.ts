@@ -8,12 +8,32 @@ import { db, table } from '~/db'
 import { ulid } from 'ulidx'
 import { jwtMiddleware } from '~/middlewares/jwt'
 
+const allowedFileTypes = [
+	'text/plain',
+	'text/markdown',
+	'text/html',
+	'application/javascript',
+	'application/typescript',
+	'text/x-python',
+] as const
+
+const description = `
+## valid File types are:
+- Plain Text: \`text/plain\`
+- Markdown: \`text/markdown\`
+- HTML: \`text/html\`
+- JavaScript: \`application/javascript\`
+- TypeScript: \`application/typescript\`
+- Python: \`text/x-python\`
+`
+
 const route = createRoute({
 	method: 'post',
 	path: '/documents',
 	operationId: 'createDocument',
 	tags: ['Documents'],
 	summary: 'Create a new document',
+	description,
 	middleware: [jwtMiddleware()],
 	security: [{ jwt: [] }],
 	request: {
@@ -21,7 +41,7 @@ const route = createRoute({
 			z.object({
 				title: z.string(),
 				description: z.string(),
-				fileType: z.string(),
+				fileType: z.enum(allowedFileTypes),
 				content: z.string(),
 				tags: z.array(z.string()).optional(),
 			}),
@@ -43,8 +63,9 @@ export const handler: AppRouteHandler<typeof route> = async (c) => {
 
 	const size = body.content.length
 
-	await db.transaction(async (tx) => {
-		await tx.insert(table.documents)
+	console.log('point 1: before insert')
+	try {
+		const insertPromise = db.insert(table.documents)
 			.values({
 				id: documentId,
 				title: body.title,
@@ -56,15 +77,29 @@ export const handler: AppRouteHandler<typeof route> = async (c) => {
 				version: 1,
 				createdBy: userId,
 			})
+			.execute()
 
-		// Grant owner access to creator
-		await tx.insert(table.documentAccess)
-			.values({
-				userId,
-				documentId,
-				role: 'owner',
-			})
-	})
+		// Add a timeout to detect hanging
+		await Promise.race([
+			insertPromise,
+			new Promise((_, reject) => setTimeout(() => reject(new Error('Insert timed out')), 5000)),
+		])
+		console.log('point 1: after insert')
+	} catch (err) {
+		console.error('Error at point 1:', err)
+		throw err
+	}
+
+	// Grant owner access to creator
+	console.log('point 2')
+	await db.insert(table.documentAccess)
+		.values({
+			userId,
+			documentId,
+			role: 'owner',
+		})
+		.execute()
+	// })
 
 	return c.json({ documentId }, HttpStatusCodes.OK)
 }

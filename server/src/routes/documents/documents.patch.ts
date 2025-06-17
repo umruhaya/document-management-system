@@ -8,12 +8,32 @@ import { db, table } from '~/db'
 import { jwtMiddleware } from '~/middlewares/jwt'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 
+const allowedFileTypes = [
+	'text/plain',
+	'text/markdown',
+	'text/html',
+	'application/javascript',
+	'application/typescript',
+	'text/x-python',
+] as const
+
+const description = `
+## valid File types are:
+- Plain Text: \`text/plain\`
+- Markdown: \`text/markdown\`
+- HTML: \`text/html\`
+- JavaScript: \`application/javascript\`
+- TypeScript: \`application/typescript\`
+- Python: \`text/x-python\`
+`
+
 const route = createRoute({
 	method: 'patch',
 	path: '/documents/{id}',
 	operationId: 'patchDocument',
 	tags: ['Documents'],
 	summary: 'Update a document (owner/editor only)',
+	description,
 	middleware: [jwtMiddleware()],
 	security: [{ jwt: [] }],
 	request: {
@@ -22,7 +42,7 @@ const route = createRoute({
 			z.object({
 				title: z.string().optional(),
 				description: z.string().optional(),
-				fileType: z.string().optional(),
+				fileType: z.enum(allowedFileTypes).optional(),
 				content: z.string().optional(),
 				tags: z.array(z.string()).optional(),
 			}),
