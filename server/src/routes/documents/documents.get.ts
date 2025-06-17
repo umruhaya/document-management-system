@@ -20,7 +20,10 @@ const route = createRoute({
 		query: z.object({
 			title: z.string().optional(),
 			author: z.string().optional(),
-			tags: z.string().array().optional(),
+			tags: z.union([
+				z.string(),
+				z.string().array(),
+			]).optional(),
 			fileType: z.string().optional(),
 			version: z.coerce.number().optional(),
 			limit: z.coerce.number().int().positive().max(50).default(10),
@@ -52,6 +55,8 @@ const route = createRoute({
 const handler: AppRouteHandler<typeof route> = async (c) => {
 	const { userId } = c.get('jwtPayload')
 	const query = c.req.valid('query')
+
+	const tags = query.tags ? (Array.isArray(query.tags) ? query.tags : [query.tags]) : undefined
 
 	console.log(query.exlcudeContent)
 
@@ -89,7 +94,7 @@ const handler: AppRouteHandler<typeof route> = async (c) => {
 				query.author ? ilike(table.users.username, `%${query.author}%`) : undefined,
 				query.author ? inArray(table.documentAccess.role, ['owner', 'editor']) : undefined,
 				// tags
-				query.tags && query.tags.length !== 0 ? arrayContains(table.documents.tags, query.tags) : undefined,
+				tags && tags.length !== 0 ? arrayContains(table.documents.tags, tags) : undefined,
 				// file
 				query.fileType ? eq(table.documents.fileType, query.fileType) : undefined,
 			),
