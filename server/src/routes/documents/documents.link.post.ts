@@ -9,6 +9,7 @@ import { jwtMiddleware } from '~/middlewares/jwt'
 import { and, eq } from 'drizzle-orm'
 import { ulid } from 'ulidx'
 import { addHours } from 'date-fns'
+import mime from 'mime'
 
 const route = createRoute({
 	method: 'post',
@@ -34,7 +35,7 @@ const route = createRoute({
 export const handler: AppRouteHandler<typeof route> = async (c) => {
 	const { userId } = c.get('jwtPayload')
 	const { documentId } = c.req.valid('param')
-	const host = c.req.header()['Host'] ?? '127.0.0.1'
+	const origin = c.req.header('Origin') ?? ''
 
 	// Check if user has access to the document
 	const access = await db
@@ -67,17 +68,20 @@ export const handler: AppRouteHandler<typeof route> = async (c) => {
 	// Expiry is set to 1 hour
 	const expiresAt = addHours(new Date(), 1)
 
+	// Guess file extension from the mime type
+	const fileExtension = mime.getExtension(doc.fileType) ?? 'bin'
+
 	await db.insert(table.documentLinks).values({
 		id: linkId,
 		documentId,
-		fileExtension: doc.fileType,
+		fileExtension,
 		fileMimeType: doc.fileType,
 		createdAt: new Date(),
 		expiresAt,
 	})
 
-	const path = `/documents/download/${linkId}.${doc.fileType}`
-	const url = `http://${host}${path}`
+	const path = `/documents/download/${linkId}.${fileExtension}`
+	const url = `${origin}${path}`
 
 	return c.json({ linkId, url, expiresAt: expiresAt.toISOString() }, HttpStatusCodes.OK)
 }

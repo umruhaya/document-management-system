@@ -5,18 +5,18 @@ import * as HttpStatusPhrases from 'stoker/http-status-phrases'
 import { jsonContent } from 'stoker/openapi/helpers'
 import type { AppRouteHandler } from '~/lib/types'
 import { db, table } from '~/db'
-import { and, eq } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
+import mime from 'mime'
 
 const route = createRoute({
 	method: 'get',
-	path: '/documents/download/{linkId}.{ext}',
+	path: '/documents/download/{filename}',
 	operationId: 'downloadDocumentByLink',
 	tags: ['Documents'],
 	summary: 'Download a document using a short-lived link',
 	request: {
 		params: z.object({
-			linkId: z.string(),
-			ext: z.string(),
+			filename: z.string(),
 		}),
 	},
 	responses: {
@@ -32,7 +32,8 @@ const route = createRoute({
 })
 
 export const handler: AppRouteHandler<typeof route> = async (c) => {
-	const { linkId, ext } = c.req.valid('param')
+	const { filename } = c.req.valid('param')
+	const linkId = filename.split('.')[0] ?? filename
 
 	const link = await db
 		.select({
@@ -44,10 +45,7 @@ export const handler: AppRouteHandler<typeof route> = async (c) => {
 		})
 		.from(table.documentLinks)
 		.where(
-			and(
-				eq(table.documentLinks.id, linkId),
-				eq(table.documentLinks.fileExtension, ext),
-			),
+			eq(table.documentLinks.id, linkId),
 		)
 		.then(r => r.at(0))
 
@@ -63,6 +61,7 @@ export const handler: AppRouteHandler<typeof route> = async (c) => {
 		.select({
 			content: table.documents.content,
 			title: table.documents.title,
+			fileType: table.documents.fileType,
 		})
 		.from(table.documents)
 		.where(eq(table.documents.id, link.documentId))
@@ -72,7 +71,10 @@ export const handler: AppRouteHandler<typeof route> = async (c) => {
 		return c.json('Document not found', HttpStatusCodes.NOT_FOUND)
 	}
 
-	c.header('Content-Disposition', `attachment; filename="${doc.title}.${ext}"`)
+	// Guess file extension from the mime type
+	const fileExtension = mime.getExtension(doc.fileType) ?? 'bin'
+
+	c.header('Content-Disposition', `attachment; filename="${doc.title}.${fileExtension}"`)
 	if (link.fileMimeType) {
 		c.header('Content-Type', link.fileMimeType)
 	} else {

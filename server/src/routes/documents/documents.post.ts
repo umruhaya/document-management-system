@@ -63,9 +63,8 @@ export const handler: AppRouteHandler<typeof route> = async (c) => {
 
 	const size = body.content.length
 
-	console.log('point 1: before insert')
-	try {
-		const insertPromise = db.insert(table.documents)
+	await db.transaction(async (tx) => {
+		await tx.insert(table.documents)
 			.values({
 				id: documentId,
 				title: body.title,
@@ -77,29 +76,15 @@ export const handler: AppRouteHandler<typeof route> = async (c) => {
 				version: 1,
 				createdBy: userId,
 			})
-			.execute()
 
-		// Add a timeout to detect hanging
-		await Promise.race([
-			insertPromise,
-			new Promise((_, reject) => setTimeout(() => reject(new Error('Insert timed out')), 5000)),
-		])
-		console.log('point 1: after insert')
-	} catch (err) {
-		console.error('Error at point 1:', err)
-		throw err
-	}
-
-	// Grant owner access to creator
-	console.log('point 2')
-	await db.insert(table.documentAccess)
-		.values({
-			userId,
-			documentId,
-			role: 'owner',
-		})
-		.execute()
-	// })
+		// Grant owner access to creator
+		await tx.insert(table.documentAccess)
+			.values({
+				userId,
+				documentId,
+				role: 'owner',
+			})
+	})
 
 	return c.json({ documentId }, HttpStatusCodes.OK)
 }

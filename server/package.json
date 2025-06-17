@@ -16,6 +16,7 @@
 		"date-fns": "^4.1.0",
 		"drizzle-orm": "^0.44.2",
 		"hono": "^4.7.11",
+		"mime": "^4.0.7",
 		"pg-error-enum": "^1.0.2",
 		"postgres": "^3.4.7",
 		"stoker": "^1.4.2",
