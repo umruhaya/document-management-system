@@ -1,6 +1,9 @@
 {
 	"compilerOptions": {
 		"moduleDetection": "force",
+		"lib": ["es2022"],
+		"module": "nodenext",
+		"moduleResolution": "nodenext",
 
 		// checks
 		"noUncheckedIndexedAccess": true,
