@@ -10,22 +10,18 @@ import { eq } from 'drizzle-orm'
 
 const route = createRoute({
 	method: 'get',
-	path: '/users/{id}',
-	operationId: 'getUser',
+	path: '/users',
+	operationId: 'getUserDetailsByUsername',
 	tags: ['Users'],
-	summary: 'Retrieve Details of a User if it exists',
-	middleware: [jwtMiddleware()],
-	security: [{ jwt: [] }],
+	summary: 'Retrieve Details of a user based on its username',
 	request: {
-		params: z.object({ id: z.string() }),
+		query: z.object({ username: z.string() }),
 	},
 	responses: {
 		[HttpStatusCodes.OK]: jsonContent(
 			z.object({
-				id: z.string(),
+				userId: z.string(),
 				username: z.string(),
-				createdAt: z.string(),
-				updatedAt: z.string(),
 			}),
 			HttpStatusPhrases.OK,
 		),
@@ -34,24 +30,22 @@ const route = createRoute({
 })
 
 export const handler: AppRouteHandler<typeof route> = async (c) => {
-	const userId = c.req.valid('param').id
+	const { username } = c.req.valid('query')
 
 	const user = await db
 		.select({
-			id: table.users.id,
+			userId: table.users.id,
 			username: table.users.username,
-			createdAt: table.users.createdAt,
-			updatedAt: table.users.updatedAt,
 		})
 		.from(table.users)
-		.where(eq(table.users.id, userId))
+		.where(eq(table.users.username, username))
 		.then(r => r.at(0))
 
 	if (!user) {
-		return c.json(`No User Found with ID ${userId}`, HttpStatusCodes.NOT_FOUND)
+		return c.json(`No User Found with Username "${username}"\n`, HttpStatusCodes.NOT_FOUND)
 	}
 
 	return c.json(user, HttpStatusCodes.OK)
 }
 
-export const getUserById = [route, handler] as const
+export const getUserByUsername = [route, handler] as const
