@@ -24,8 +24,6 @@ const route = createRoute({
 				fileType: z.string(),
 				content: z.string(),
 				tags: z.array(z.string()).optional(),
-				size: z.number().int().positive(),
-				version: z.number().int().positive().optional(),
 			}),
 			'DocumentCreate',
 		),
@@ -43,6 +41,8 @@ export const handler: AppRouteHandler<typeof route> = async (c) => {
 	const body = c.req.valid('json')
 	const documentId = ulid()
 
+	const size = body.content.length
+
 	await db.transaction(async (tx) => {
 		await tx.insert(table.documents)
 			.values({
@@ -52,8 +52,8 @@ export const handler: AppRouteHandler<typeof route> = async (c) => {
 				fileType: body.fileType,
 				content: body.content,
 				tags: body.tags ?? [],
-				size: body.size,
-				version: body.version ?? 1,
+				size,
+				version: 1,
 				createdBy: userId,
 			})
 

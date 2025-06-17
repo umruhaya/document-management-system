@@ -6,7 +6,7 @@ import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
 import type { AppRouteHandler } from '~/lib/types'
 import { db, table } from '~/db'
 import { jwtMiddleware } from '~/middlewares/jwt'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 
 const route = createRoute({
 	method: 'patch',
@@ -25,7 +25,6 @@ const route = createRoute({
 				fileType: z.string().optional(),
 				content: z.string().optional(),
 				tags: z.array(z.string()).optional(),
-				version: z.number().int().positive().optional(),
 			}),
 			'DocumentPatch',
 		),
@@ -57,8 +56,13 @@ export const handler: AppRouteHandler<typeof route> = async (c) => {
 		return c.json('Forbidden: Not enough access', HttpStatusCodes.FORBIDDEN)
 	}
 
+	// increment version if content is being updated
+	const version = patch.content !== undefined ? sql`${table.documents.version} + 1` : undefined
+	// Update Size if content is being updated
+	const size = patch.content !== undefined ? patch.content.length : undefined
+
 	const result = await db.update(table.documents)
-		.set(patch)
+		.set({ ...patch, version, size })
 		.where(eq(table.documents.id, documentId))
 		.returning()
 		.then(r => r.at(0))
