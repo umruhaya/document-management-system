@@ -15,3 +15,4 @@ const queryClient = postgres(databaseConnectionString)
 
 export const DatabaseError = postgres.PostgresError
 export const db = drizzle(queryClient, { schema: table })
+export { table }

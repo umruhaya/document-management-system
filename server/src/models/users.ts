@@ -1,4 +1,4 @@
-import { index, pgTable, timestamp, varchar } from 'drizzle-orm/pg-core'
+import { index, pgTable, timestamp, unique, varchar } from 'drizzle-orm/pg-core'
 import { len } from './_constants'
 
 export const users = pgTable('users', {
@@ -16,4 +16,5 @@ export const users = pgTable('users', {
 		.notNull(),
 }, table => [
 	index().on(table.username),
+	unique().on(table.username),
 ])

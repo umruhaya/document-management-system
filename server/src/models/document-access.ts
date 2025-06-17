@@ -11,7 +11,7 @@ export const documentAccess = pgTable('document_access', {
 		.references(() => users.id, { onDelete: 'cascade' }),
 	documentId: varchar('document_id', { length: len.ID })
 		.notNull()
-		.references(() => documents.id),
+		.references(() => documents.id, { onDelete: 'cascade' }),
 	role: rolesPgEnum('role')
 		.notNull(),
 }, table => [

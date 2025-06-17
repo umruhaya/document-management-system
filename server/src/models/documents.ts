@@ -21,11 +21,10 @@ export const documents = pgTable('documents', {
 		.notNull(),
 	tags: varchar('tags', { length: len.MEDIUM })
 		.array()
-		.default(sql`ARRAY[]::varchar[]`)
 		.notNull(),
-	authorId: varchar('author_id', { length: len.ID })
+	createdBy: varchar('created_by', { length: len.ID })
 		.notNull()
-		.references(() => users.id),
+		.references(() => users.id, { onDelete: 'cascade' }),
 	createdAt: timestamp('created_at')
 		.defaultNow()
 		.notNull(),
