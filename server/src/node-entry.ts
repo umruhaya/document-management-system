@@ -1,11 +1,12 @@
+import { serve } from '@hono/node-server'
 import app from '~/app'
 import { env } from '~/env'
 import { formatStartUpMessage } from './utils'
 
-export default {
+serve({
 	fetch: app.fetch,
 	port: env.PORT,
 	hostname: env.HOST,
-}
-
-console.log(formatStartUpMessage({ port: env.PORT }))
+}, (info) => {
+	console.log(formatStartUpMessage({ port: env.PORT }))
+})
