@@ -1,5 +1,11 @@
 import { createRouter } from '~/lib/create-app'
-import { get } from './documents.get'
+import { searchDocuments } from './documents.get'
+import { getDocumentById } from './documents.id.get'
+import { getDocumentAccessList } from './documents.access.get'
+import { patchDocumentAccess } from './documents.access.patch'
 
 export const documentsRouter = createRouter()
-	.openapi(...get)
+	.openapi(...searchDocuments)
+	.openapi(...getDocumentById)
+	.openapi(...getDocumentAccessList)
+	.openapi(...patchDocumentAccess)
