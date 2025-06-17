@@ -23,7 +23,9 @@ const route = createRoute({
 			tags: z.union([
 				z.string(),
 				z.string().array(),
-			]).optional(),
+			])
+				.optional()
+				.transform(tags => tags ? (Array.isArray(tags) ? tags : [tags]) : undefined),
 			fileType: z.string().optional(),
 			version: z.coerce.number().optional(),
 			limit: z.coerce.number().int().positive().max(50).default(10),
@@ -55,10 +57,6 @@ const route = createRoute({
 const handler: AppRouteHandler<typeof route> = async (c) => {
 	const { userId } = c.get('jwtPayload')
 	const query = c.req.valid('query')
-
-	const tags = query.tags ? (Array.isArray(query.tags) ? query.tags : [query.tags]) : undefined
-
-	console.log(query.exlcudeContent)
 
 	const documents = await db.selectDistinctOn([table.documents.id], {
 		id: table.documents.id,
@@ -94,7 +92,7 @@ const handler: AppRouteHandler<typeof route> = async (c) => {
 				query.author ? ilike(table.users.username, `%${query.author}%`) : undefined,
 				query.author ? inArray(table.documentAccess.role, ['owner', 'editor']) : undefined,
 				// tags
-				tags && tags.length !== 0 ? arrayContains(table.documents.tags, tags) : undefined,
+				query.tags && query.tags.length !== 0 ? arrayContains(table.documents.tags, query.tags) : undefined,
 				// file
 				query.fileType ? eq(table.documents.fileType, query.fileType) : undefined,
 			),
