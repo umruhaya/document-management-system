@@ -23,9 +23,9 @@ const route = createRoute({
 			tags: z.string().array().optional(),
 			fileType: z.string().optional(),
 			version: z.coerce.number().optional(),
-			limit: z.number().int().positive().max(50),
-			offset: z.number().int().nonnegative(),
-			exlcudeContent: z.boolean().default(true).optional(),
+			limit: z.coerce.number().int().positive().max(50).default(10),
+			offset: z.coerce.number().int().nonnegative().default(0),
+			exlcudeContent: z.coerce.boolean().default(true).optional(),
 		}),
 	},
 	responses: {
