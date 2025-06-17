@@ -8,6 +8,8 @@ import { DatabaseError, db, table } from '~/db'
 import { PostgresError } from 'pg-error-enum'
 import { ulid } from 'ulidx'
 import argon2 from 'argon2'
+import { sign } from 'hono/jwt'
+import { env } from '~/env'
 
 const route = createRoute({
 	method: 'post',
@@ -26,7 +28,7 @@ const route = createRoute({
 	},
 	responses: {
 		[HttpStatusCodes.OK]: jsonContent(
-			z.object({ userId: z.string() }),
+			z.object({ userId: z.string(), token: z.string() }),
 			HttpStatusPhrases.OK,
 		),
 		[HttpStatusCodes.CONFLICT]: jsonContent(
@@ -51,7 +53,17 @@ export const handler: AppRouteHandler<typeof route> = async (c) => {
 			}
 		}
 	}
-	return c.json({ userId }, HttpStatusCodes.OK)
+	// expiry time in seconds
+	const EXPIRY_TIME = 4 * 60 * 60 // 4 hours
+
+	const token = await sign({
+		userId,
+		username,
+		iat: Date.now() / 1000,
+		exp: Date.now() / 1000 + EXPIRY_TIME,
+	}, env.JWT_SECRET)
+
+	return c.json({ userId, token }, HttpStatusCodes.OK)
 }
 
 export const createUser = [route, handler] as const
