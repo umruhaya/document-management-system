@@ -1,6 +1,7 @@
 import { OpenApiGeneratorV31, OpenAPIRegistry } from '@asteasolutions/zod-to-openapi'
 import * as usersRoutes from './users'
 import * as documentsRoutes from './documents'
+import { SwaggerUI } from '@hono/swagger-ui'
 
 const registry = new OpenAPIRegistry()
 
@@ -39,3 +40,16 @@ export const openapiDocument = generator.generateDocument({
 		version: '0.0.0',
 	},
 })
+
+const title = openapiDocument.info.title
+export const swaggerHtml = `<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="SwaggerUI" />
+    <title>${title}</title>
+</head>
+    <body>
+        ${SwaggerUI({ title, url: '/docs.json', persistAuthorization: true })}
+    </body>
+</html>`
