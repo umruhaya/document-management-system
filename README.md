@@ -82,7 +82,7 @@ brew install dprint
 ### Auto Generating Migration File
 
 ```bash
-bun run db:generate --name "create_user_table"
+pnpm run db:generate --name "create_user_table"
 ```
 
 `--name` specifies the name of the migration file.
@@ -90,7 +90,7 @@ bun run db:generate --name "create_user_table"
 ### Prototyping with Push
 
 ```bash
-bun run db:push
+pnpm run db:push
 ```
 
 This will run the migrations, but before that it will show you the DDL query generated for migrations and asks you for confirmation. It is a good idea to review it. sometimes it can creates queries that drop tables and you may not want that for your `production` database :expressionless:
@@ -100,5 +100,5 @@ This will run the migrations, but before that it will show you the DDL query gen
 ### Run Database Studio
 
 ```bash
-bun run db:studio
+pnpm run db:studio
 ```
