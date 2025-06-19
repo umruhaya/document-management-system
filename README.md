@@ -40,6 +40,10 @@
 
    The `-d` flag will run the service in detached mode.
 
+## Database ER Diagram
+
+![ER Diagram](./docs/er-diagram.png)
+
 ## Database Migrations
 
 ### Auto Generating Migration File
