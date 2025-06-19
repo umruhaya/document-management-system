@@ -3,7 +3,6 @@ import { jwtMiddleware } from '~/presentation/http/express/middlewares/jwt'
 import { JWTDecodedPayload } from '~/presentation/http/types'
 import * as dtos from '~/presentation/http/dtos/documents'
 import * as documentsController from '~/presentation/http/controllers/documents'
-import { validateRequest } from 'zod-express-middleware'
 
 const router = Router()
 export const documentsRouter = router
@@ -12,11 +11,14 @@ export const documentsRouter = router
 router.post(
 	'/',
 	jwtMiddleware(),
-	validateRequest({ body: dtos.DocumentCreate }),
 	async (req, res) => {
-		// @ts-ignore
-		const { userId } = req.jwtPayload as JWTDecodedPayload
-		const result = await documentsController.create({ userId, body: req.body })
+		const parseResult = dtos.DocumentCreate.safeParse(req.body)
+		if (!parseResult.success) {
+			res.status(422).json({ error: parseResult.error.errors })
+			return
+		}
+		const { userId } = req.jwtPayload!
+		const result = await documentsController.create({ userId, body: parseResult.data })
 		res.status(result.statusCode ?? 200)
 		if (result.headers) res.set(result.headers)
 		if ('json' in result) res.json(result.json)
@@ -28,11 +30,19 @@ router.post(
 router.patch(
 	'/:id',
 	jwtMiddleware(),
-	validateRequest({ params: dtos.DocumentPatchParams, body: dtos.DocumentPatch }),
 	async (req, res) => {
-		// @ts-ignore
-		const { userId } = req.jwtPayload as JWTDecodedPayload
-		const result = await documentsController.patch({ userId, params: req.params, body: req.body })
+		const paramsResult = dtos.DocumentPatchParams.safeParse(req.params)
+		if (!paramsResult.success) {
+			res.status(422).json({ error: paramsResult.error.errors })
+			return
+		}
+		const bodyResult = dtos.DocumentPatch.safeParse(req.body)
+		if (!bodyResult.success) {
+			res.status(422).json({ error: bodyResult.error.errors })
+			return
+		}
+		const { userId } = req.jwtPayload!
+		const result = await documentsController.patch({ userId, params: paramsResult.data, body: bodyResult.data })
 		res.status(result.statusCode ?? 200)
 		if (result.headers) res.set(result.headers)
 		if ('json' in result) res.json(result.json)
@@ -44,11 +54,14 @@ router.patch(
 router.get(
 	'/:id',
 	jwtMiddleware(),
-	validateRequest({ params: dtos.GetDocumentByIdParams }),
 	async (req, res) => {
-		// @ts-ignore
-		const { userId } = req.jwtPayload as JWTDecodedPayload
-		const result = await documentsController.getById({ userId, params: req.params })
+		const paramsResult = dtos.GetDocumentByIdParams.safeParse(req.params)
+		if (!paramsResult.success) {
+			res.status(422).json({ error: paramsResult.error.errors })
+			return
+		}
+		const { userId } = req.jwtPayload!
+		const result = await documentsController.getById({ userId, params: paramsResult.data })
 		res.status(result.statusCode ?? 200)
 		if (result.headers) res.set(result.headers)
 		if ('json' in result) res.json(result.json)
@@ -60,14 +73,16 @@ router.get(
 router.get(
 	'/',
 	jwtMiddleware(),
-	validateRequest({ query: dtos.SearchDocumentsQuery }),
 	async (req, res) => {
-		// @ts-ignore
-		const { userId } = req.jwtPayload as JWTDecodedPayload
+		const queryResult = dtos.SearchDocumentsQuery.safeParse(req.query)
+		if (!queryResult.success) {
+			res.status(422).json({ error: queryResult.error.errors })
+			return
+		}
+		const { userId } = req.jwtPayload!
 		const result = await documentsController.search({
 			userId,
-			// @ts-ignore
-			query: req.query,
+			query: queryResult.data,
 		})
 		res.status(result.statusCode ?? 200)
 		if (result.headers) res.set(result.headers)
@@ -80,11 +95,14 @@ router.get(
 router.get(
 	'/:documentId/access',
 	jwtMiddleware(),
-	validateRequest({ params: dtos.GetDocumentAccessListParams }),
 	async (req, res) => {
-		// @ts-ignore
-		const { userId } = req.jwtPayload as JWTDecodedPayload
-		const result = await documentsController.getAccessList({ userId, params: req.params })
+		const paramsResult = dtos.GetDocumentAccessListParams.safeParse(req.params)
+		if (!paramsResult.success) {
+			res.status(422).json({ error: paramsResult.error.errors })
+			return
+		}
+		const { userId } = req.jwtPayload!
+		const result = await documentsController.getAccessList({ userId, params: paramsResult.data })
 		res.status(result.statusCode ?? 200)
 		if (result.headers) res.set(result.headers)
 		if ('json' in result) res.json(result.json)
@@ -96,11 +114,19 @@ router.get(
 router.patch(
 	'/:documentId/access',
 	jwtMiddleware(),
-	validateRequest({ params: dtos.PatchDocumentAccessParams, body: dtos.PatchDocumentAccessRequest }),
 	async (req, res) => {
-		// @ts-ignore
-		const { userId } = req.jwtPayload as JWTDecodedPayload
-		const result = await documentsController.patchAccess({ userId, params: req.params, body: req.body })
+		const paramsResult = dtos.PatchDocumentAccessParams.safeParse(req.params)
+		if (!paramsResult.success) {
+			res.status(422).json({ error: paramsResult.error.errors })
+			return
+		}
+		const bodyResult = dtos.PatchDocumentAccessRequest.safeParse(req.body)
+		if (!bodyResult.success) {
+			res.status(422).json({ error: bodyResult.error.errors })
+			return
+		}
+		const { userId } = req.jwtPayload!
+		const result = await documentsController.patchAccess({ userId, params: paramsResult.data, body: bodyResult.data })
 		res.status(result.statusCode ?? 200)
 		if (result.headers) res.set(result.headers)
 		if ('json' in result) res.json(result.json)
@@ -112,12 +138,15 @@ router.patch(
 router.post(
 	'/:documentId/link',
 	jwtMiddleware(),
-	validateRequest({ params: dtos.CreateDocumentLinkParams }),
 	async (req, res) => {
-		// @ts-ignore
-		const { userId } = req.jwtPayload as JWTDecodedPayload
+		const paramsResult = dtos.CreateDocumentLinkParams.safeParse(req.params)
+		if (!paramsResult.success) {
+			res.status(422).json({ error: paramsResult.error.errors })
+			return
+		}
+		const { userId } = req.jwtPayload!
 		const origin = req.get('origin') || ''
-		const result = await documentsController.createLink({ userId, params: req.params, origin })
+		const result = await documentsController.createLink({ userId, params: paramsResult.data, origin })
 		res.status(result.statusCode ?? 200)
 		if (result.headers) res.set(result.headers)
 		if ('json' in result) res.json(result.json)
@@ -128,9 +157,13 @@ router.post(
 // GET /documents/download/:filename
 router.get(
 	'/download/:filename',
-	validateRequest({ params: dtos.DownloadDocumentByLinkParams }),
 	async (req, res) => {
-		const result = await documentsController.downloadByLink({ params: req.params })
+		const paramsResult = dtos.DownloadDocumentByLinkParams.safeParse(req.params)
+		if (!paramsResult.success) {
+			res.status(422).json({ error: paramsResult.error.errors })
+			return
+		}
+		const result = await documentsController.downloadByLink({ params: paramsResult.data })
 		res.status(result.statusCode ?? 200)
 		if (result.headers) res.set(result.headers)
 		if ('json' in result) res.json(result.json)

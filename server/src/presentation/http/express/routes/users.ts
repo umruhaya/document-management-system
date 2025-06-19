@@ -3,7 +3,6 @@ import { jwtMiddleware } from '~/presentation/http/express/middlewares/jwt'
 import { JWTDecodedPayload } from '~/presentation/http/types'
 import * as dtos from '~/presentation/http/dtos/users'
 import * as usersController from '~/presentation/http/controllers/users'
-import { validateRequest } from 'zod-express-middleware'
 
 const router = Router()
 export const usersRouter = router
@@ -11,9 +10,13 @@ export const usersRouter = router
 // GET /users?username=...
 router.get(
 	'/',
-	validateRequest({ query: dtos.GetUserQuery }),
 	async (req, res) => {
-		const result = await usersController.getByUsername({ query: req.query })
+		const parseResult = dtos.GetUserQuery.safeParse(req.query)
+		if (!parseResult.success) {
+			res.status(422).json({ error: parseResult.error.errors })
+			return
+		}
+		const result = await usersController.getByUsername({ query: parseResult.data })
 		res.status(result.statusCode ?? 200)
 		if (result.headers) res.set(result.headers)
 		if ('json' in result) res.json(result.json)
@@ -24,9 +27,13 @@ router.get(
 // POST /users
 router.post(
 	'/',
-	validateRequest({ body: dtos.UserCredentials }),
 	async (req, res) => {
-		const result = await usersController.create({ body: req.body })
+		const parseResult = dtos.UserCredentials.safeParse(req.body)
+		if (!parseResult.success) {
+			res.status(422).json({ error: parseResult.error.errors })
+			return
+		}
+		const result = await usersController.create({ body: parseResult.data })
 		res.status(result.statusCode ?? 200)
 		if (result.headers) res.set(result.headers)
 		if ('json' in result) res.json(result.json)
@@ -37,9 +44,13 @@ router.post(
 // POST /users/token
 router.post(
 	'/token',
-	validateRequest({ body: dtos.LoginUserRequest }),
 	async (req, res) => {
-		const result = await usersController.login({ body: req.body })
+		const parseResult = dtos.LoginUserRequest.safeParse(req.body)
+		if (!parseResult.success) {
+			res.status(422).json({ error: parseResult.error.errors })
+			return
+		}
+		const result = await usersController.login({ body: parseResult.data })
 		res.status(result.statusCode ?? 200)
 		if (result.headers) res.set(result.headers)
 		if ('json' in result) res.json(result.json)
@@ -51,11 +62,14 @@ router.post(
 router.patch(
 	'/',
 	jwtMiddleware(),
-	validateRequest({ body: dtos.UserUpdate }),
 	async (req, res) => {
-		// @ts-ignore
-		const { userId } = req.jwtPayload as JWTDecodedPayload
-		const result = await usersController.update({ userId, body: req.body })
+		const parseResult = dtos.UserUpdate.safeParse(req.body)
+		if (!parseResult.success) {
+			res.status(422).json({ error: parseResult.error.errors })
+			return
+		}
+		const { userId } = req.jwtPayload!
+		const result = await usersController.update({ userId, body: parseResult.data })
 		res.status(result.statusCode ?? 200)
 		if (result.headers) res.set(result.headers)
 		if ('json' in result) res.json(result.json)
@@ -68,8 +82,7 @@ router.get(
 	'/me',
 	jwtMiddleware(),
 	async (req, res) => {
-		// @ts-ignore
-		const { userId } = req.jwtPayload as JWTDecodedPayload
+		const { userId } = req.jwtPayload!
 		const result = await usersController.getMe({ userId })
 		res.status(result.statusCode ?? 200)
 		if (result.headers) res.set(result.headers)
