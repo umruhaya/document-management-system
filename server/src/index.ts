@@ -1,11 +1,7 @@
-import app from '~/app'
+import { expressApp } from '~/presentation/http/express/app'
 import { env } from '~/env'
 import { formatStartUpMessage } from './utils'
 
-export default {
-	fetch: app.fetch,
-	port: env.PORT,
-	hostname: env.HOST,
-}
-
-console.log(formatStartUpMessage({ port: env.PORT }))
+expressApp.listen(env.PORT, env.HOST, () => {
+	console.log(formatStartUpMessage({ port: env.PORT }))
+})

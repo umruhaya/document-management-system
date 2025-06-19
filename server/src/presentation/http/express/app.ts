@@ -2,7 +2,6 @@ import express from 'express'
 import { usersRouter } from './routes/users'
 import { documentsRouter } from './routes/documents'
 import { openapiDocument, swaggerHtml } from '~/presentation/http/openapi'
-import { env } from '~/env'
 
 const app = express()
 
@@ -26,6 +25,4 @@ app.get('/docs.json', (_, res) => {
 	res.json(openapiDocument)
 })
 
-app.listen(env.PORT, env.HOST)
-
-export default app
+export const expressApp = app
