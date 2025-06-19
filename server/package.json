@@ -1,8 +1,7 @@
 {
 	"name": "server",
 	"scripts": {
-		"dev": "bun run --hot src/index.ts",
-		"dev:node": "tsx --watch --env-file=.env src/node-entry.ts",
+		"dev": "tsx --watch --env-file=.env src/index.ts",
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:push": "drizzle-kit push",
