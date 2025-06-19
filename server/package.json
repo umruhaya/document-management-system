@@ -9,22 +9,29 @@
 		"db:studio": "drizzle-kit studio --verbose"
 	},
 	"dependencies": {
+		"@asteasolutions/zod-to-openapi": "^7.3.4",
 		"@hono/node-server": "^1.14.4",
 		"@hono/swagger-ui": "^0.5.2",
 		"@hono/zod-openapi": "^0.19.8",
 		"argon2": "^0.43.0",
 		"date-fns": "^4.1.0",
 		"drizzle-orm": "^0.44.2",
+		"express": "^5.1.0",
+		"express-jwt": "^8.5.1",
 		"hono": "^4.7.11",
+		"jsonwebtoken": "^9.0.2",
 		"mime": "^4.0.7",
 		"pg-error-enum": "^1.0.2",
 		"postgres": "^3.4.7",
 		"stoker": "^1.4.2",
 		"ulidx": "^2.4.1",
-		"zod": "^3.25.64"
+		"zod": "^3.25.64",
+		"zod-express-middleware": "^1.4.0"
 	},
 	"devDependencies": {
 		"@types/bun": "latest",
+		"@types/express": "^5.0.3",
+		"@types/jsonwebtoken": "^9.0.10",
 		"drizzle-kit": "^0.31.1",
 		"tsx": "^4.20.3"
 	}
