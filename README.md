@@ -2,29 +2,43 @@
 
 ## Getting Started
 
-1. Install [Bun.js](https://bun.sh/)
+1. Install [Node.js](https://nodejs.org/) (version 22 or above recommended).\
+   It is recommended to use [nvm](https://github.com/nvm-sh/nvm) for managing Node versions:
 
-2. Install Packages using `bun`:
+   ```bash
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+   # Restart your terminal, then:
+   nvm install 22
+   nvm use 22
+   ```
 
-```bash
-cd server
-bun install
-```
+2. Install [pnpm](https://pnpm.io/):
 
-3. Start the development server:
+   ```bash
+   npm install -g pnpm
+   ```
 
-```bash
-bun dev
-```
+3. Install packages using `pnpm`:
 
-4. Also start the postgreSQL service using docker if you prefer docker for running PostgreSQL.
+   ```bash
+   cd server
+   pnpm install
+   ```
 
-```bash
-cd docker
-docker compose up -d db
-```
+4. Start the development server:
 
-The `-d` flag will run the service in `detached mode`
+   ```bash
+   pnpm dev
+   ```
+
+5. Also start the PostgreSQL service using Docker if you prefer Docker for running PostgreSQL:
+
+   ```bash
+   cd docker
+   docker compose up -d db
+   ```
+
+   The `-d` flag will run the service in detached mode.
 
 ## Contributuing Guide
 
