@@ -1,7 +1,5 @@
 import { Router } from 'express'
 import { jwtMiddleware } from '~/presentation/http/express/middlewares/jwt'
-import { JWTDecodedPayload } from '~/presentation/http/types'
-import * as dtos from '~/presentation/http/dtos/users'
 import * as usersController from '~/presentation/http/controllers/users'
 
 const router = Router()
@@ -11,12 +9,7 @@ export const usersRouter = router
 router.get(
 	'/',
 	async (req, res) => {
-		const parseResult = dtos.GetUserQuery.safeParse(req.query)
-		if (!parseResult.success) {
-			res.status(422).json({ error: parseResult.error.errors })
-			return
-		}
-		const result = await usersController.getByUsername({ query: parseResult.data })
+		const result = await usersController.getByUsername({ query: req.query })
 		res.status(result.statusCode ?? 200)
 		if (result.headers) res.set(result.headers)
 		if ('json' in result) res.json(result.json)
@@ -28,12 +21,7 @@ router.get(
 router.post(
 	'/',
 	async (req, res) => {
-		const parseResult = dtos.UserCredentials.safeParse(req.body)
-		if (!parseResult.success) {
-			res.status(422).json({ error: parseResult.error.errors })
-			return
-		}
-		const result = await usersController.create({ body: parseResult.data })
+		const result = await usersController.create({ body: req.body })
 		res.status(result.statusCode ?? 200)
 		if (result.headers) res.set(result.headers)
 		if ('json' in result) res.json(result.json)
@@ -45,12 +33,7 @@ router.post(
 router.post(
 	'/token',
 	async (req, res) => {
-		const parseResult = dtos.LoginUserRequest.safeParse(req.body)
-		if (!parseResult.success) {
-			res.status(422).json({ error: parseResult.error.errors })
-			return
-		}
-		const result = await usersController.login({ body: parseResult.data })
+		const result = await usersController.login({ body: req.body })
 		res.status(result.statusCode ?? 200)
 		if (result.headers) res.set(result.headers)
 		if ('json' in result) res.json(result.json)
@@ -63,13 +46,8 @@ router.patch(
 	'/',
 	jwtMiddleware(),
 	async (req, res) => {
-		const parseResult = dtos.UserUpdate.safeParse(req.body)
-		if (!parseResult.success) {
-			res.status(422).json({ error: parseResult.error.errors })
-			return
-		}
 		const { userId } = req.jwtPayload!
-		const result = await usersController.update({ userId, body: parseResult.data })
+		const result = await usersController.update({ userId, body: req.body })
 		res.status(result.statusCode ?? 200)
 		if (result.headers) res.set(result.headers)
 		if ('json' in result) res.json(result.json)

@@ -8,10 +8,15 @@ import { and, arrayContains, eq, exists, ilike, inArray, sql } from 'drizzle-orm
 import mime from 'mime'
 import { addHours } from 'date-fns'
 
-export const create = async (
-	{ userId, body }: { userId: string; body: z.infer<typeof dtos.DocumentCreate> },
-) => {
+export const create = async (input: { userId: string, body: any }) => {
 	const documentId = ulid()
+
+	const bodyResult = dtos.DocumentCreate.safeParse(input.body)
+	if (!bodyResult.success) {
+		return httpResponse({ json: bodyResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
+	}
+	const { userId } = input
+	const body = bodyResult.data
 
 	const size = body.content.length
 
@@ -44,12 +49,20 @@ export const create = async (
 export const patch = async (
 	{ userId, params, body }: {
 		userId: string
-		params: z.infer<typeof dtos.DocumentPatchParams>
-		body: z.infer<typeof dtos.DocumentPatch>
+		params: any
+		body: any
 	},
 ) => {
-	const documentId = params.id
-	const patch = body
+	const paramsResult = dtos.DocumentPatchParams.safeParse(params)
+	if (!paramsResult.success) {
+		return httpResponse({ json: paramsResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
+	}
+	const bodyResult = dtos.DocumentPatch.safeParse(body)
+	if (!bodyResult.success) {
+		return httpResponse({ json: bodyResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
+	}
+	const documentId = paramsResult.data.id
+	const patch = bodyResult.data
 
 	const access = await db
 		.select({ role: table.documentAccess.role })
@@ -82,9 +95,13 @@ export const patch = async (
 }
 
 export const getById = async (
-	{ userId, params }: { userId: string; params: z.infer<typeof dtos.GetDocumentByIdParams> },
+	{ userId, params }: { userId: string; params: any },
 ) => {
-	const documentId = params.id
+	const paramsResult = dtos.GetDocumentByIdParams.safeParse(params)
+	if (!paramsResult.success) {
+		return httpResponse({ json: paramsResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
+	}
+	const documentId = paramsResult.data.id
 
 	const document = await db.selectDistinctOn([table.documents.id], {
 		id: table.documents.id,
@@ -117,9 +134,13 @@ export const getById = async (
 }
 
 export const search = async (
-	{ userId, query }: { userId: string; query: z.infer<typeof dtos.SearchDocumentsQuery> },
+	{ userId, query }: { userId: string; query: any },
 ) => {
-	const q = query
+	const queryResult = dtos.SearchDocumentsQuery.safeParse(query)
+	if (!queryResult.success) {
+		return httpResponse({ json: queryResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
+	}
+	const q = queryResult.data
 
 	const documents = await db.selectDistinctOn([table.documents.id], {
 		id: table.documents.id,
@@ -163,9 +184,13 @@ export const search = async (
 }
 
 export const getAccessList = async (
-	{ userId, params }: { userId: string; params: z.infer<typeof dtos.GetDocumentAccessListParams> },
+	{ userId, params }: { userId: string; params: any },
 ) => {
-	const { documentId } = params
+	const paramsResult = dtos.GetDocumentAccessListParams.safeParse(params)
+	if (!paramsResult.success) {
+		return httpResponse({ json: paramsResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
+	}
+	const { documentId } = paramsResult.data
 
 	const hasAccess = await db
 		.select()
@@ -204,12 +229,20 @@ export const getAccessList = async (
 export const patchAccess = async (
 	{ userId, params, body }: {
 		userId: string
-		params: z.infer<typeof dtos.PatchDocumentAccessParams>
-		body: z.infer<typeof dtos.PatchDocumentAccessRequest>
+		params: any
+		body: any
 	},
 ) => {
-	const { documentId } = params
-	const { targetUserId, role, remove } = body
+	const paramsResult = dtos.PatchDocumentAccessParams.safeParse(params)
+	if (!paramsResult.success) {
+		return httpResponse({ json: paramsResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
+	}
+	const bodyResult = dtos.PatchDocumentAccessRequest.safeParse(body)
+	if (!bodyResult.success) {
+		return httpResponse({ json: bodyResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
+	}
+	const { documentId } = paramsResult.data
+	const { targetUserId, role, remove } = bodyResult.data
 
 	const isOwner = await db
 		.select()
@@ -272,11 +305,15 @@ export const patchAccess = async (
 export const createLink = async (
 	{ userId, params, origin }: {
 		userId: string
-		params: z.infer<typeof dtos.CreateDocumentLinkParams>
+		params: any
 		origin: string
 	},
 ) => {
-	const { documentId } = params
+	const paramsResult = dtos.CreateDocumentLinkParams.safeParse(params)
+	if (!paramsResult.success) {
+		return httpResponse({ json: paramsResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
+	}
+	const { documentId } = paramsResult.data
 
 	const access = await db
 		.select()
@@ -323,9 +360,13 @@ export const createLink = async (
 }
 
 export const downloadByLink = async (
-	{ params }: { params: z.infer<typeof dtos.DownloadDocumentByLinkParams> },
+	{ params }: { params: any },
 ) => {
-	const { filename } = params
+	const paramsResult = dtos.DownloadDocumentByLinkParams.safeParse(params)
+	if (!paramsResult.success) {
+		return httpResponse({ json: paramsResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
+	}
+	const { filename } = paramsResult.data
 	const linkId = filename.split('.')[0] ?? filename
 
 	const link = await db

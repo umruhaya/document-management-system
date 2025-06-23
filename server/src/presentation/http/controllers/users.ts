@@ -10,9 +10,13 @@ import { eq } from 'drizzle-orm'
 import { env } from '~/env'
 
 export const getByUsername = async (
-	{ query }: { query: z.infer<typeof dtos.GetUserQuery> },
+	{ query }: { query: any },
 ) => {
-	const { username } = query
+	const parseResult = dtos.GetUserQuery.safeParse(query)
+	if (!parseResult.success) {
+		return httpResponse({ json: { error: parseResult.error.errors }, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
+	}
+	const { username } = parseResult.data
 	const user = await db
 		.select({
 			userId: table.users.id,
@@ -33,9 +37,13 @@ export const getByUsername = async (
 }
 
 export const create = async (
-	{ body }: { body: z.infer<typeof dtos.UserCredentials> },
+	{ body }: { body: any },
 ) => {
-	const { username, password } = body
+	const parseResult = dtos.UserCredentials.safeParse(body)
+	if (!parseResult.success) {
+		return httpResponse({ json: { error: parseResult.error.errors }, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
+	}
+	const { username, password } = parseResult.data
 	const hashedPassword = await argon2.hash(password)
 	const userId = ulid()
 
@@ -64,9 +72,13 @@ export const create = async (
 }
 
 export const login = async (
-	{ body }: { body: z.infer<typeof dtos.LoginUserRequest> },
+	{ body }: { body: any },
 ) => {
-	const { username, password } = body
+	const parseResult = dtos.LoginUserRequest.safeParse(body)
+	if (!parseResult.success) {
+		return httpResponse({ json: { error: parseResult.error.errors }, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
+	}
+	const { username, password } = parseResult.data
 	const user = await db
 		.select()
 		.from(table.users)
@@ -93,9 +105,13 @@ export const login = async (
 }
 
 export const update = async (
-	{ userId, body }: { userId: string; body: z.infer<typeof dtos.UserUpdate> },
+	{ userId, body }: { userId: string; body: any },
 ) => {
-	const { username, password, newUsername } = body
+	const parseResult = dtos.UserUpdate.safeParse(body)
+	if (!parseResult.success) {
+		return httpResponse({ json: { error: parseResult.error.errors }, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
+	}
+	const { username, password, newUsername } = parseResult.data
 
 	if (!username && !password) {
 		return httpResponse({ json: { updated: false }, statusCode: HttpStatusCodes.OK })
