@@ -5,6 +5,10 @@
 		"module": "nodenext",
 		"moduleResolution": "nodenext",
 
+		// enable decorators for `reflect-metadata` and DI
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+
 		// checks
 		"noUncheckedIndexedAccess": true,
 		"noImplicitAny": true,
