@@ -1,0 +1,16 @@
+{
+	"editor.defaultFormatter": "biomejs.biome",
+	"biome.configurationPath": "biome.json",
+	"biome.lsp.trace.server": "verbose",
+	"editor.formatOnSave": true,
+	"biome.lsp.bin": "/home/linuxbrew/.linuxbrew/bin/biome",
+	"[json][javascript][javascriptreact][typescript][typescriptreact]": {
+		"editor.defaultFormatter": "biomejs.biome",
+		"editor.formatOnSave": true
+	},
+	"editor.codeActionsOnSave": {
+		"quickfix.biome": "explicit",
+		"source.fixAll.biome": "explicit",
+		"source.organizeImports.biome": "explicit"
+	}
+}
