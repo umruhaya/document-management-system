@@ -23,7 +23,9 @@
 		"pg-error-enum": "^1.0.2",
 		"postgres": "^3.4.7",
 		"stoker": "^1.4.2",
+		"tsyringe": "^4.10.0",
 		"ulidx": "^2.4.1",
+		"winston": "^3.17.0",
 		"zod": "^3.25.64"
 	},
 	"devDependencies": {
