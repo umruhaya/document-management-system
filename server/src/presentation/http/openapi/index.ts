@@ -1,7 +1,7 @@
-import { OpenApiGeneratorV31, OpenAPIRegistry } from '@asteasolutions/zod-to-openapi'
-import * as usersRoutes from './users'
-import * as documentsRoutes from './documents'
+import { OpenAPIRegistry, OpenApiGeneratorV31 } from '@asteasolutions/zod-to-openapi'
 import { SwaggerUI } from '@hono/swagger-ui'
+import * as documentsRoutes from './documents'
+import * as usersRoutes from './users'
 
 const registry = new OpenAPIRegistry()
 

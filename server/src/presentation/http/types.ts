@@ -1,4 +1,4 @@
-import { JwtPayload } from 'jsonwebtoken'
+import type { JwtPayload } from 'jsonwebtoken'
 
 export type JWTContent = {
 	userId: string
@@ -15,9 +15,9 @@ export interface PaginationOptions<Filters extends Record<string, unknown> = {}>
 }
 
 export interface PaginatedCollection<T> {
-	items: T[];             
-	totalItems: number;     
-	totalPages: number;     
-	currentPage: number;    
-	perPage: number;        
+	items: T[]
+	totalItems: number
+	totalPages: number
+	currentPage: number
+	perPage: number
 }

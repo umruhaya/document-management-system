@@ -1,14 +1,12 @@
+import * as HttpStatusCodes from 'stoker/http-status-codes'
 import { z } from 'zod'
 import * as dtos from '~/presentation/http/dtos/users'
 import { httpResponse } from '~/presentation/http/lib'
-import * as HttpStatusCodes from 'stoker/http-status-codes'
 import { UserRepository } from '~/repositories/user'
 
 const userRepository = new UserRepository()
 
-export const getByUsername = async (
-	{ query }: { query: any },
-) => {
+export const getByUsername = async ({ query }: { query: any }) => {
 	const parseResult = dtos.GetUserQuery.safeParse(query)
 	if (!parseResult.success) {
 		return httpResponse({ json: { error: parseResult.error.errors }, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -27,9 +25,7 @@ export const getByUsername = async (
 	return httpResponse({ json: result.error.message, statusCode: HttpStatusCodes.INTERNAL_SERVER_ERROR })
 }
 
-export const create = async (
-	{ body }: { body: any },
-) => {
+export const create = async ({ body }: { body: any }) => {
 	const parseResult = dtos.UserCredentials.safeParse(body)
 	if (!parseResult.success) {
 		return httpResponse({ json: { error: parseResult.error.errors }, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -48,9 +44,7 @@ export const create = async (
 	return httpResponse({ json: result.error.message, statusCode: HttpStatusCodes.INTERNAL_SERVER_ERROR })
 }
 
-export const login = async (
-	{ body }: { body: any },
-) => {
+export const login = async ({ body }: { body: any }) => {
 	const parseResult = dtos.LoginUserRequest.safeParse(body)
 	if (!parseResult.success) {
 		return httpResponse({ json: { error: parseResult.error.errors }, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -66,9 +60,7 @@ export const login = async (
 	return httpResponse({ json: result.error.message, statusCode: HttpStatusCodes.INTERNAL_SERVER_ERROR })
 }
 
-export const update = async (
-	{ userId, body }: { userId: string; body: any },
-) => {
+export const update = async ({ userId, body }: { userId: string; body: any }) => {
 	const parseResult = dtos.UserUpdate.safeParse(body)
 	if (!parseResult.success) {
 		return httpResponse({ json: { error: parseResult.error.errors }, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -84,9 +76,7 @@ export const update = async (
 	return httpResponse({ json: result.error.message, statusCode: HttpStatusCodes.INTERNAL_SERVER_ERROR })
 }
 
-export const getMe = async (
-	{ userId }: { userId: string },
-) => {
+export const getMe = async ({ userId }: { userId: string }) => {
 	const result = await userRepository.getMe(userId)
 	if (result.ok) {
 		return httpResponse({ json: result.value, statusCode: HttpStatusCodes.OK })

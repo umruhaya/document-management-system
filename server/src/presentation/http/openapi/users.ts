@@ -1,9 +1,9 @@
-import { z } from 'zod'
-import { createRoute } from './_helpers'
 import * as HttpStatusCodes from 'stoker/http-status-codes'
 import * as HttpStatusPhrases from 'stoker/http-status-phrases'
 import { jsonContent, jsonContentRequired } from 'stoker/openapi/helpers'
+import { z } from 'zod'
 import * as dtos from '../dtos/users'
+import { createRoute } from './_helpers'
 
 export const createUser = createRoute({
 	method: 'post',

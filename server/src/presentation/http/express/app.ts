@@ -1,7 +1,7 @@
 import express from 'express'
-import { usersRouter } from './routes/users'
-import { documentsRouter } from './routes/documents'
 import { openapiDocument, swaggerHtml } from '~/presentation/http/openapi'
+import { documentsRouter } from './routes/documents'
+import { usersRouter } from './routes/users'
 
 const app = express()
 

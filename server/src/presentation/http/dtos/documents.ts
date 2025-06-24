@@ -1,5 +1,6 @@
-import { z } from 'zod'
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi'
+import { z } from 'zod'
+
 extendZodWithOpenApi(z)
 
 // Allowed file types for documents
@@ -57,40 +58,45 @@ export const SearchDocumentsQuery = z.object({
 	sort: z.string().optional(),
 	title: z.string().optional(),
 	author: z.string().optional(),
-	tags: z.union([z.string(), z.string().array()])
+	tags: z
+		.union([z.string(), z.string().array()])
 		.optional()
-		.transform(tags => tags ? (Array.isArray(tags) ? tags : [tags]) : undefined),
+		.transform((tags) => (tags ? (Array.isArray(tags) ? tags : [tags]) : undefined)),
 	fileType: z.string().optional(),
 	version: z.coerce.number().optional(),
 	exlcudeContent: z.literal('true').default('true').optional(),
 })
 export const SearchDocumentsResponse = z.object({
-	totalItems: z.number(),     
-	totalPages: z.number(), 
-	currentPage: z.number(),    
+	totalItems: z.number(),
+	totalPages: z.number(),
+	currentPage: z.number(),
 	perPage: z.number(),
-	items: z.array(z.object({
-		id: z.string(),
-		title: z.string(),
-		description: z.string(),
-		fileType: z.string(),
-		version: z.number(),
-		size: z.number(),
-		content: z.string(),
-		tags: z.array(z.string()),
-		createdAt: z.string(),
-		updatedAt: z.string(),
-	})),
+	items: z.array(
+		z.object({
+			id: z.string(),
+			title: z.string(),
+			description: z.string(),
+			fileType: z.string(),
+			version: z.number(),
+			size: z.number(),
+			content: z.string(),
+			tags: z.array(z.string()),
+			createdAt: z.string(),
+			updatedAt: z.string(),
+		}),
+	),
 })
 
 // Document access list
 export const GetDocumentAccessListParams = z.object({ documentId: z.string() })
 export const GetDocumentAccessListResponse = z.object({
-	access: z.array(z.object({
-		userId: z.string(),
-		username: z.string(),
-		role: z.string(),
-	})),
+	access: z.array(
+		z.object({
+			userId: z.string(),
+			username: z.string(),
+			role: z.string(),
+		}),
+	),
 })
 
 // Patch document access

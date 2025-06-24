@@ -1,13 +1,13 @@
+import * as HttpStatusCodes from 'stoker/http-status-codes'
+import * as HttpStatusPhrases from 'stoker/http-status-phrases'
 import { z } from 'zod'
 import * as dtos from '~/presentation/http/dtos/documents'
 import { httpResponse } from '~/presentation/http/lib'
-import * as HttpStatusCodes from 'stoker/http-status-codes'
-import * as HttpStatusPhrases from 'stoker/http-status-phrases'
 import { DocumentRepository } from '~/repositories/document'
 
 const documentRepository = new DocumentRepository()
 
-export const create = async (input: { userId: string, body: any }) => {
+export const create = async (input: { userId: string; body: any }) => {
 	const bodyResult = dtos.DocumentCreate.safeParse(input.body)
 	if (!bodyResult.success) {
 		return httpResponse({ json: bodyResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -21,13 +21,7 @@ export const create = async (input: { userId: string, body: any }) => {
 	return httpResponse({ json: result.error.message, statusCode: HttpStatusCodes.INTERNAL_SERVER_ERROR })
 }
 
-export const patch = async (
-	{ userId, params, body }: {
-		userId: string
-		params: any
-		body: any
-	},
-) => {
+export const patch = async ({ userId, params, body }: { userId: string; params: any; body: any }) => {
 	const paramsResult = dtos.DocumentPatchParams.safeParse(params)
 	if (!paramsResult.success) {
 		return httpResponse({ json: paramsResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -51,9 +45,7 @@ export const patch = async (
 	return httpResponse({ json: result.error.message, statusCode: HttpStatusCodes.INTERNAL_SERVER_ERROR })
 }
 
-export const getById = async (
-	{ userId, params }: { userId: string; params: any },
-) => {
+export const getById = async ({ userId, params }: { userId: string; params: any }) => {
 	const paramsResult = dtos.GetDocumentByIdParams.safeParse(params)
 	if (!paramsResult.success) {
 		return httpResponse({ json: paramsResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -66,9 +58,7 @@ export const getById = async (
 	return httpResponse({ json: `No Document Found with ID ${documentId}`, statusCode: HttpStatusCodes.NOT_FOUND })
 }
 
-export const search = async (
-	{ userId, query }: { userId: string; query: any },
-) => {
+export const search = async ({ userId, query }: { userId: string; query: any }) => {
 	const queryResult = dtos.SearchDocumentsQuery.safeParse(query)
 	if (!queryResult.success) {
 		return httpResponse({ json: queryResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -81,9 +71,7 @@ export const search = async (
 	return httpResponse({ json: result.error.message, statusCode: HttpStatusCodes.INTERNAL_SERVER_ERROR })
 }
 
-export const getAccessList = async (
-	{ userId, params }: { userId: string; params: any },
-) => {
+export const getAccessList = async ({ userId, params }: { userId: string; params: any }) => {
 	const paramsResult = dtos.GetDocumentAccessListParams.safeParse(params)
 	if (!paramsResult.success) {
 		return httpResponse({ json: paramsResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -99,13 +87,7 @@ export const getAccessList = async (
 	return httpResponse({ json: `No Document Found with ID ${documentId}`, statusCode: HttpStatusCodes.NOT_FOUND })
 }
 
-export const patchAccess = async (
-	{ userId, params, body }: {
-		userId: string
-		params: any
-		body: any
-	},
-) => {
+export const patchAccess = async ({ userId, params, body }: { userId: string; params: any; body: any }) => {
 	const paramsResult = dtos.PatchDocumentAccessParams.safeParse(params)
 	if (!paramsResult.success) {
 		return httpResponse({ json: paramsResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -117,7 +99,7 @@ export const patchAccess = async (
 	const { documentId } = paramsResult.data
 	const { targetUserId, role, remove } = bodyResult.data
 
-	if(remove) {
+	if (remove) {
 		const result = await documentRepository.revokeAccess(userId, documentId, targetUserId)
 		if (result.ok) {
 			return httpResponse({ json: result.value, statusCode: HttpStatusCodes.OK })
@@ -125,8 +107,11 @@ export const patchAccess = async (
 		return httpResponse({ json: 'Success', statusCode: HttpStatusCodes.OK })
 	}
 
-	if(!role) {
-		return httpResponse({ json: { message: 'role is required when remove is false' }, statusCode: HttpStatusCodes.BAD_REQUEST })
+	if (!role) {
+		return httpResponse({
+			json: { message: 'role is required when remove is false' },
+			statusCode: HttpStatusCodes.BAD_REQUEST,
+		})
 	}
 
 	const result = await documentRepository.patchAccess(userId, documentId, targetUserId, role)
@@ -136,13 +121,7 @@ export const patchAccess = async (
 	return httpResponse({ json: result.error.message, statusCode: HttpStatusCodes.FORBIDDEN })
 }
 
-export const createLink = async (
-	{ userId, params, origin }: {
-		userId: string
-		params: any
-		origin: string
-	},
-) => {
+export const createLink = async ({ userId, params, origin }: { userId: string; params: any; origin: string }) => {
 	const paramsResult = dtos.CreateDocumentLinkParams.safeParse(params)
 	if (!paramsResult.success) {
 		return httpResponse({ json: paramsResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -152,20 +131,21 @@ export const createLink = async (
 	if (result.ok) {
 		return httpResponse({ json: result.value, statusCode: HttpStatusCodes.OK })
 	}
-	switch(result.error.type) {
-		case 'Forbidden': 
+	switch (result.error.type) {
+		case 'Forbidden':
 			return httpResponse({ json: HttpStatusPhrases.FORBIDDEN, statusCode: HttpStatusCodes.FORBIDDEN })
 		case 'NotFound':
 			return httpResponse({ json: HttpStatusPhrases.NOT_FOUND, statusCode: HttpStatusCodes.NOT_FOUND })
 		case 'Unknown':
 		default:
-			return httpResponse({ json: HttpStatusPhrases.INTERNAL_SERVER_ERROR, statusCode: HttpStatusCodes.INTERNAL_SERVER_ERROR })
+			return httpResponse({
+				json: HttpStatusPhrases.INTERNAL_SERVER_ERROR,
+				statusCode: HttpStatusCodes.INTERNAL_SERVER_ERROR,
+			})
 	}
 }
 
-export const downloadByLink = async (
-	{ params }: { params: any },
-) => {
+export const downloadByLink = async ({ params }: { params: any }) => {
 	const paramsResult = dtos.DownloadDocumentByLinkParams.safeParse(params)
 	if (!paramsResult.success) {
 		return httpResponse({ json: paramsResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -180,12 +160,15 @@ export const downloadByLink = async (
 		}
 		return httpResponse({ body: content, statusCode: HttpStatusCodes.OK, headers })
 	}
-	switch(result.error.type) {
-		case 'Gone': 
+	switch (result.error.type) {
+		case 'Gone':
 			return httpResponse({ json: `Already Expired`, statusCode: HttpStatusCodes.GONE })
 		case 'NotFound':
 			return httpResponse({ json: `No Link Found`, statusCode: HttpStatusCodes.NOT_FOUND })
 		default:
-			return httpResponse({ json: HttpStatusPhrases.INTERNAL_SERVER_ERROR, statusCode: HttpStatusCodes.INTERNAL_SERVER_ERROR })
+			return httpResponse({
+				json: HttpStatusPhrases.INTERNAL_SERVER_ERROR,
+				statusCode: HttpStatusCodes.INTERNAL_SERVER_ERROR,
+			})
 	}
 }

@@ -1,7 +1,7 @@
-import postgres from 'postgres'
 import { drizzle } from 'drizzle-orm/postgres-js'
-import { table } from '~/models'
+import postgres from 'postgres'
 import { env } from '~/env'
+import { table } from '~/models'
 
 const HOST = env.DATABASE_HOST
 const NAME = env.DATABASE_NAME
