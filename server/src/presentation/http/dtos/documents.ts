@@ -21,12 +21,15 @@ export const DocumentCreate = z.object({
 	content: z.string(),
 	tags: z.array(z.string()).optional(),
 })
+export type DocumentCreateType = z.infer<typeof DocumentCreate>
 export const CreateDocumentResponse = z.object({
 	documentId: z.string(),
 })
+export type CreateDocumentResponseType = z.infer<typeof CreateDocumentResponse>
 
 // Patch document
 export const DocumentPatchParams = z.object({ id: z.string() })
+export type DocumentPatchParamsType = z.infer<typeof DocumentPatchParams>
 export const DocumentPatch = z.object({
 	title: z.string().optional(),
 	description: z.string().optional(),
@@ -34,10 +37,13 @@ export const DocumentPatch = z.object({
 	content: z.string().optional(),
 	tags: z.array(z.string()).optional(),
 })
+export type DocumentPatchType = z.infer<typeof DocumentPatch>
 export const PatchDocumentResponse = z.object({ updated: z.boolean() })
+export type PatchDocumentResponseType = z.infer<typeof PatchDocumentResponse>
 
 // Get document by ID
 export const GetDocumentByIdParams = z.object({ id: z.string() })
+export type GetDocumentByIdParamsType = z.infer<typeof GetDocumentByIdParams>
 export const GetDocumentByIdResponse = z.object({
 	id: z.string(),
 	title: z.string(),
@@ -50,6 +56,7 @@ export const GetDocumentByIdResponse = z.object({
 	createdAt: z.string(),
 	updatedAt: z.string(),
 })
+export type GetDocumentByIdResponseType = z.infer<typeof GetDocumentByIdResponse>
 
 // Search documents
 export const SearchDocumentsQuery = z.object({
@@ -66,6 +73,7 @@ export const SearchDocumentsQuery = z.object({
 	version: z.coerce.number().optional(),
 	exlcudeContent: z.literal('true').default('true').optional(),
 })
+export type SearchDocumentsQueryType = z.infer<typeof SearchDocumentsQuery>
 export const SearchDocumentsResponse = z.object({
 	totalItems: z.number(),
 	totalPages: z.number(),
@@ -86,9 +94,11 @@ export const SearchDocumentsResponse = z.object({
 		}),
 	),
 })
+export type SearchDocumentsResponseType = z.infer<typeof SearchDocumentsResponse>
 
 // Document access list
 export const GetDocumentAccessListParams = z.object({ documentId: z.string() })
+export type GetDocumentAccessListParamsType = z.infer<typeof GetDocumentAccessListParams>
 export const GetDocumentAccessListResponse = z.object({
 	access: z.array(
 		z.object({
@@ -98,24 +108,32 @@ export const GetDocumentAccessListResponse = z.object({
 		}),
 	),
 })
+export type GetDocumentAccessListResponseType = z.infer<typeof GetDocumentAccessListResponse>
 
 // Patch document access
 export const PatchDocumentAccessParams = z.object({ documentId: z.string() })
+export type PatchDocumentAccessParamsType = z.infer<typeof PatchDocumentAccessParams>
 export const PatchDocumentAccessRequest = z.object({
 	targetUserId: z.string(),
 	role: z.enum(['viewer', 'editor', 'owner']).optional(),
 	remove: z.boolean().optional(),
 })
+export type PatchDocumentAccessRequestType = z.infer<typeof PatchDocumentAccessRequest>
 export const PatchDocumentAccessResponse = z.object({ success: z.boolean() })
+export type PatchDocumentAccessResponseType = z.infer<typeof PatchDocumentAccessResponse>
 
 // Create document link
 export const CreateDocumentLinkParams = z.object({ documentId: z.string() })
+export type CreateDocumentLinkParamsType = z.infer<typeof CreateDocumentLinkParams>
 export const CreateDocumentLinkResponse = z.object({
 	linkId: z.string(),
 	url: z.string(),
 	expiresAt: z.string(),
 })
+export type CreateDocumentLinkResponseType = z.infer<typeof CreateDocumentLinkResponse>
 
 // Download document by link
 export const DownloadDocumentByLinkParams = z.object({ filename: z.string() })
+export type DownloadDocumentByLinkParamsType = z.infer<typeof DownloadDocumentByLinkParams>
 export const DownloadDocumentByLinkResponse = z.string()
+export type DownloadDocumentByLinkResponseType = z.infer<typeof DownloadDocumentByLinkResponse>

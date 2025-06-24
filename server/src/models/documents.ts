@@ -1,5 +1,4 @@
-import { sql } from 'drizzle-orm'
-import { index, integer, pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core'
+import { integer, pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core'
 import { len } from './_constants'
 import { users } from './users'
 

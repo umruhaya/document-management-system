@@ -1,12 +1,11 @@
 import * as HttpStatusCodes from 'stoker/http-status-codes'
-import { z } from 'zod'
 import * as dtos from '~/presentation/http/dtos/users'
 import { httpResponse } from '~/presentation/http/lib'
 import { UserRepository } from '~/repositories/user'
 
 const userRepository = new UserRepository()
 
-export const getByUsername = async ({ query }: { query: any }) => {
+export const getByUsername = async ({ query }: { query: unknown }) => {
 	const parseResult = dtos.GetUserQuery.safeParse(query)
 	if (!parseResult.success) {
 		return httpResponse({ json: { error: parseResult.error.errors }, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -25,7 +24,7 @@ export const getByUsername = async ({ query }: { query: any }) => {
 	return httpResponse({ json: result.error.message, statusCode: HttpStatusCodes.INTERNAL_SERVER_ERROR })
 }
 
-export const create = async ({ body }: { body: any }) => {
+export const create = async ({ body }: { body: unknown }) => {
 	const parseResult = dtos.UserCredentials.safeParse(body)
 	if (!parseResult.success) {
 		return httpResponse({ json: { error: parseResult.error.errors }, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -44,7 +43,7 @@ export const create = async ({ body }: { body: any }) => {
 	return httpResponse({ json: result.error.message, statusCode: HttpStatusCodes.INTERNAL_SERVER_ERROR })
 }
 
-export const login = async ({ body }: { body: any }) => {
+export const login = async ({ body }: { body: unknown }) => {
 	const parseResult = dtos.LoginUserRequest.safeParse(body)
 	if (!parseResult.success) {
 		return httpResponse({ json: { error: parseResult.error.errors }, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -60,7 +59,7 @@ export const login = async ({ body }: { body: any }) => {
 	return httpResponse({ json: result.error.message, statusCode: HttpStatusCodes.INTERNAL_SERVER_ERROR })
 }
 
-export const update = async ({ userId, body }: { userId: string; body: any }) => {
+export const update = async ({ userId, body }: { userId: string; body: unknown }) => {
 	const parseResult = dtos.UserUpdate.safeParse(body)
 	if (!parseResult.success) {
 		return httpResponse({ json: { error: parseResult.error.errors }, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })

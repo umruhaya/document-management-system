@@ -34,7 +34,11 @@ router.post('/token', async (req, res) => {
 
 // PATCH /users
 router.patch('/', jwtMiddleware(), async (req, res) => {
-	const { userId } = req.jwtPayload!
+	if (!req.jwtPayload) {
+		res.status(500).send('Internal Server Error')
+		return
+	}
+	const { userId } = req.jwtPayload
 	const result = await usersController.update({ userId, body: req.body })
 	res.status(result.statusCode ?? 200)
 	if (result.headers) res.set(result.headers)
@@ -44,7 +48,11 @@ router.patch('/', jwtMiddleware(), async (req, res) => {
 
 // GET /users/me
 router.get('/me', jwtMiddleware(), async (req, res) => {
-	const { userId } = req.jwtPayload!
+	if (!req.jwtPayload) {
+		res.status(500).send('Internal Server Error')
+		return
+	}
+	const { userId } = req.jwtPayload
 	const result = await usersController.getMe({ userId })
 	res.status(result.statusCode ?? 200)
 	if (result.headers) res.set(result.headers)

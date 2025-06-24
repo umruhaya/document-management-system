@@ -1,13 +1,12 @@
 import * as HttpStatusCodes from 'stoker/http-status-codes'
 import * as HttpStatusPhrases from 'stoker/http-status-phrases'
-import { z } from 'zod'
 import * as dtos from '~/presentation/http/dtos/documents'
 import { httpResponse } from '~/presentation/http/lib'
 import { DocumentRepository } from '~/repositories/document'
 
 const documentRepository = new DocumentRepository()
 
-export const create = async (input: { userId: string; body: any }) => {
+export const create = async (input: { userId: string; body: unknown }) => {
 	const bodyResult = dtos.DocumentCreate.safeParse(input.body)
 	if (!bodyResult.success) {
 		return httpResponse({ json: bodyResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -21,7 +20,7 @@ export const create = async (input: { userId: string; body: any }) => {
 	return httpResponse({ json: result.error.message, statusCode: HttpStatusCodes.INTERNAL_SERVER_ERROR })
 }
 
-export const patch = async ({ userId, params, body }: { userId: string; params: any; body: any }) => {
+export const patch = async ({ userId, params, body }: { userId: string; params: unknown; body: unknown }) => {
 	const paramsResult = dtos.DocumentPatchParams.safeParse(params)
 	if (!paramsResult.success) {
 		return httpResponse({ json: paramsResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -45,7 +44,7 @@ export const patch = async ({ userId, params, body }: { userId: string; params: 
 	return httpResponse({ json: result.error.message, statusCode: HttpStatusCodes.INTERNAL_SERVER_ERROR })
 }
 
-export const getById = async ({ userId, params }: { userId: string; params: any }) => {
+export const getById = async ({ userId, params }: { userId: string; params: unknown }) => {
 	const paramsResult = dtos.GetDocumentByIdParams.safeParse(params)
 	if (!paramsResult.success) {
 		return httpResponse({ json: paramsResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -58,7 +57,7 @@ export const getById = async ({ userId, params }: { userId: string; params: any 
 	return httpResponse({ json: `No Document Found with ID ${documentId}`, statusCode: HttpStatusCodes.NOT_FOUND })
 }
 
-export const search = async ({ userId, query }: { userId: string; query: any }) => {
+export const search = async ({ userId, query }: { userId: string; query: unknown }) => {
 	const queryResult = dtos.SearchDocumentsQuery.safeParse(query)
 	if (!queryResult.success) {
 		return httpResponse({ json: queryResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -71,7 +70,7 @@ export const search = async ({ userId, query }: { userId: string; query: any }) 
 	return httpResponse({ json: result.error.message, statusCode: HttpStatusCodes.INTERNAL_SERVER_ERROR })
 }
 
-export const getAccessList = async ({ userId, params }: { userId: string; params: any }) => {
+export const getAccessList = async ({ userId, params }: { userId: string; params: unknown }) => {
 	const paramsResult = dtos.GetDocumentAccessListParams.safeParse(params)
 	if (!paramsResult.success) {
 		return httpResponse({ json: paramsResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -87,7 +86,7 @@ export const getAccessList = async ({ userId, params }: { userId: string; params
 	return httpResponse({ json: `No Document Found with ID ${documentId}`, statusCode: HttpStatusCodes.NOT_FOUND })
 }
 
-export const patchAccess = async ({ userId, params, body }: { userId: string; params: any; body: any }) => {
+export const patchAccess = async ({ userId, params, body }: { userId: string; params: unknown; body: unknown }) => {
 	const paramsResult = dtos.PatchDocumentAccessParams.safeParse(params)
 	if (!paramsResult.success) {
 		return httpResponse({ json: paramsResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -121,7 +120,7 @@ export const patchAccess = async ({ userId, params, body }: { userId: string; pa
 	return httpResponse({ json: result.error.message, statusCode: HttpStatusCodes.FORBIDDEN })
 }
 
-export const createLink = async ({ userId, params, origin }: { userId: string; params: any; origin: string }) => {
+export const createLink = async ({ userId, params, origin }: { userId: string; params: unknown; origin: string }) => {
 	const paramsResult = dtos.CreateDocumentLinkParams.safeParse(params)
 	if (!paramsResult.success) {
 		return httpResponse({ json: paramsResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -136,7 +135,6 @@ export const createLink = async ({ userId, params, origin }: { userId: string; p
 			return httpResponse({ json: HttpStatusPhrases.FORBIDDEN, statusCode: HttpStatusCodes.FORBIDDEN })
 		case 'NotFound':
 			return httpResponse({ json: HttpStatusPhrases.NOT_FOUND, statusCode: HttpStatusCodes.NOT_FOUND })
-		case 'Unknown':
 		default:
 			return httpResponse({
 				json: HttpStatusPhrases.INTERNAL_SERVER_ERROR,
@@ -145,7 +143,7 @@ export const createLink = async ({ userId, params, origin }: { userId: string; p
 	}
 }
 
-export const downloadByLink = async ({ params }: { params: any }) => {
+export const downloadByLink = async ({ params }: { params: unknown }) => {
 	const paramsResult = dtos.DownloadDocumentByLinkParams.safeParse(params)
 	if (!paramsResult.success) {
 		return httpResponse({ json: paramsResult.error.errors, statusCode: HttpStatusCodes.UNPROCESSABLE_ENTITY })
@@ -153,7 +151,7 @@ export const downloadByLink = async ({ params }: { params: any }) => {
 	const { filename } = paramsResult.data
 	const result = await documentRepository.downloadByLink(filename)
 	if (result.ok) {
-		const { content, title, fileType, fileMimeType, fileExtension } = result.value
+		const { content, title, fileMimeType, fileExtension } = result.value
 		const headers = {
 			'Content-Disposition': `attachment; filename="${title}.${fileExtension}"`,
 			'Content-Type': fileMimeType ?? 'text/plain',

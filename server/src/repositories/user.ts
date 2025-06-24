@@ -7,13 +7,6 @@ import { DatabaseError, db, table } from '~/db'
 import { env } from '~/env'
 import { Result, type ResultType } from '~/lib/result'
 
-// Repository-specific error types
-type UserRepoError =
-	| { type: 'UserAlreadyExists'; message: string }
-	| { type: 'UserNotFound'; message: string }
-	| { type: 'InvalidCredentials'; message: string }
-	| { type: 'Unknown'; message: string }
-
 export class UserRepository {
 	async getByUsername(
 		username: string,
@@ -54,7 +47,7 @@ export class UserRepository {
 			}
 			return Result.err({
 				type: 'Unknown',
-				message: (error as any).message || 'Unknown error',
+				message: 'Unknown error',
 			})
 		}
 		const EXPIRY_TIME = 4 * 60 * 60 // 4 hours
@@ -120,27 +113,27 @@ export class UserRepository {
 			return Result.ok({ updated: false })
 		}
 		const hashedPassword = password ? await argon2.hash(password) : undefined
-		const updateData: any = { updatedAt: new Date() }
-		if (newUsername) updateData.username = newUsername
-		if (hashedPassword) updateData.hashedPassword = hashedPassword
-		let updatedUser
 		try {
-			updatedUser = await db
+			const updatedUser = await db
 				.update(table.users)
-				.set(updateData)
+				.set({
+					updatedAt: new Date().toISOString(),
+					username: newUsername,
+					hashedPassword,
+				})
 				.where(eq(table.users.id, userId))
 				.returning()
 				.then((r) => r.at(0))
-		} catch (error: any) {
-			return Result.err({ type: 'Unknown', message: error.message || 'Unknown error' })
+			if (!updatedUser) {
+				return Result.err({
+					type: 'UserNotFound',
+					message: `User not found`,
+				})
+			}
+			return Result.ok({ updated: true })
+		} catch (_) {
+			return Result.err({ type: 'Unknown', message: 'Unknown error' })
 		}
-		if (!updatedUser) {
-			return Result.err({
-				type: 'UserNotFound',
-				message: `User not found`,
-			})
-		}
-		return Result.ok({ updated: true })
 	}
 
 	async getMe(

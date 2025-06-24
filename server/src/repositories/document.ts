@@ -4,18 +4,13 @@ import mime from 'mime'
 import { ulid } from 'ulidx'
 import { db, table } from '~/db'
 import { Result, type ResultType } from '~/lib/result'
+import type * as dtos from '~/presentation/http/dtos/documents'
 
 export class DocumentRepository {
 	async create(
 		userId: string,
-		data: {
-			title: string
-			description: string
-			fileType: string
-			content: string
-			tags?: string[]
-		},
-	): Promise<ResultType<{ documentId: string }, { type: 'Unknown'; message: string }>> {
+		data: dtos.DocumentCreateType,
+	): Promise<ResultType<dtos.CreateDocumentResponseType, { type: 'Unknown'; message: string }>> {
 		const documentId = ulid()
 		const size = data.content.length
 		try {
@@ -38,16 +33,18 @@ export class DocumentRepository {
 				})
 			})
 			return Result.ok({ documentId })
-		} catch (error: any) {
-			return Result.err({ type: 'Unknown', message: error.message || 'Unknown error' })
+		} catch (_) {
+			return Result.err({ type: 'Unknown', message: 'Unknown error' })
 		}
 	}
 
 	async patch(
 		userId: string,
 		documentId: string,
-		patch: any,
-	): Promise<ResultType<{ updated: boolean }, { type: 'Forbidden' | 'NotFound' | 'Unknown'; message: string }>> {
+		patch: dtos.DocumentPatchType,
+	): Promise<
+		ResultType<dtos.PatchDocumentResponseType, { type: 'Forbidden' | 'NotFound' | 'Unknown'; message: string }>
+	> {
 		const access = await db
 			.select({ role: table.documentAccess.role })
 			.from(table.documentAccess)
@@ -64,24 +61,26 @@ export class DocumentRepository {
 		}
 		const version = patch.content !== undefined ? sql`${table.documents.version} + 1` : undefined
 		const size = patch.content !== undefined ? patch.content.length : undefined
-		let result
 		try {
-			result = await db
+			const result = await db
 				.update(table.documents)
 				.set({ ...patch, version, size })
 				.where(eq(table.documents.id, documentId))
 				.returning()
 				.then((r) => r.at(0))
-		} catch (error: any) {
-			return Result.err({ type: 'Unknown', message: error.message || 'Unknown error' })
+			if (!result) {
+				return Result.err({ type: 'NotFound', message: 'Document not found' })
+			}
+			return Result.ok({ updated: true })
+		} catch (error) {
+			return Result.err({ type: 'Unknown', message: (error as { message?: string }).message ?? 'Unknown error' })
 		}
-		if (!result) {
-			return Result.err({ type: 'NotFound', message: 'Document not found' })
-		}
-		return Result.ok({ updated: true })
 	}
 
-	async getById(userId: string, documentId: string): Promise<ResultType<any, { type: 'NotFound' }>> {
+	async getById(
+		userId: string,
+		documentId: string,
+	): Promise<ResultType<dtos.GetDocumentByIdResponseType, { type: 'NotFound' }>> {
 		const document = await db
 			.selectDistinctOn([table.documents.id], {
 				id: table.documents.id,
@@ -106,7 +105,10 @@ export class DocumentRepository {
 		return Result.ok(document)
 	}
 
-	async search(userId: string, q: any): Promise<ResultType<any, { type: 'Unknown'; message: string }>> {
+	async search(
+		userId: string,
+		q: dtos.SearchDocumentsQueryType,
+	): Promise<ResultType<dtos.SearchDocumentsResponseType, { type: 'Unknown'; message: string }>> {
 		const filters = and(
 			exists(
 				db
@@ -159,15 +161,15 @@ export class DocumentRepository {
 				totalItems,
 				totalPages: Math.ceil(totalItems / q.limit),
 			})
-		} catch (error: any) {
-			return Result.err({ type: 'Unknown', message: error.message || 'Unknown error' })
+		} catch (_) {
+			return Result.err({ type: 'Unknown', message: 'Unknown error' })
 		}
 	}
 
 	async getAccessList(
 		userId: string,
 		documentId: string,
-	): Promise<ResultType<any, { type: 'Forbidden' | 'NotFound' }>> {
+	): Promise<ResultType<dtos.GetDocumentAccessListResponseType, { type: 'Forbidden' | 'NotFound' }>> {
 		const hasAccess = await db
 			.select()
 			.from(table.documentAccess)
@@ -197,7 +199,7 @@ export class DocumentRepository {
 		documentId: string,
 		targetUserId: string,
 		role: 'viewer' | 'editor' | 'owner',
-	): Promise<ResultType<{ success: boolean }, { type: 'Forbidden' | 'Unknown'; message: string }>> {
+	): Promise<ResultType<dtos.PatchDocumentAccessResponseType, { type: 'Forbidden' | 'Unknown'; message: string }>> {
 		const isOwner = await db
 			.select()
 			.from(table.documentAccess)
@@ -239,7 +241,7 @@ export class DocumentRepository {
 		userId: string,
 		documentId: string,
 		targetUserId: string,
-	): Promise<ResultType<{ success: boolean }, { type: 'Forbidden' | 'Unknown'; message: string }>> {
+	): Promise<ResultType<dtos.PatchDocumentAccessResponseType, { type: 'Forbidden' | 'Unknown'; message: string }>> {
 		const isOwner = await db
 			.select()
 			.from(table.documentAccess)
@@ -265,10 +267,7 @@ export class DocumentRepository {
 		documentId: string,
 		origin: string,
 	): Promise<
-		ResultType<
-			{ linkId: string; url: string; expiresAt: string },
-			{ type: 'Forbidden' | 'NotFound' | 'Unknown'; message: string }
-		>
+		ResultType<dtos.CreateDocumentLinkResponseType, { type: 'Forbidden' | 'NotFound' | 'Unknown'; message: string }>
 	> {
 		const access = await db
 			.select()
@@ -301,11 +300,15 @@ export class DocumentRepository {
 		return Result.ok({ linkId, url, expiresAt })
 	}
 
-	async downloadByLink(
-		filename: string,
-	): Promise<
+	async downloadByLink(filename: string): Promise<
 		ResultType<
-			{ content: string; title: string; fileType: string; fileMimeType: string; fileExtension: string },
+			{
+				content: string
+				title: string
+				fileType: string
+				fileMimeType: string
+				fileExtension: string
+			},
 			{ type: 'NotFound' | 'Gone' }
 		>
 	> {
