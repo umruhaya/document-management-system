@@ -8,10 +8,10 @@ export const users = pgTable('users', {
 		.notNull(),
 	hashedPassword: varchar('hashed_password', { length: len.MEDIUM })
 		.notNull(),
-	createdAt: timestamp('created_at')
+	createdAt: timestamp('created_at', { mode: 'string' })
 		.defaultNow()
 		.notNull(),
-	updatedAt: timestamp('updated_at')
+	updatedAt: timestamp('updated_at', { mode: 'string' })
 		.defaultNow()
 		.notNull(),
 }, table => [

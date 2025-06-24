@@ -25,10 +25,10 @@ export const documents = pgTable('documents', {
 	createdBy: varchar('created_by', { length: len.ID })
 		.notNull()
 		.references(() => users.id, { onDelete: 'cascade' }),
-	createdAt: timestamp('created_at')
+	createdAt: timestamp('created_at', { mode: 'string' })
 		.defaultNow()
 		.notNull(),
-	updatedAt: timestamp('updated_at')
+	updatedAt: timestamp('updated_at', { mode: 'string' })
 		.defaultNow()
 		.notNull(),
 })

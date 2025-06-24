@@ -4,7 +4,7 @@ import { db, table } from '~/db'
 import { ulid } from 'ulidx'
 import * as HttpStatusCodes from 'stoker/http-status-codes'
 import { httpResponse } from '~/presentation/http/lib'
-import { and, arrayContains, eq, exists, ilike, inArray, sql } from 'drizzle-orm'
+import { and, arrayContains, countDistinct, eq, exists, ilike, inArray, sql } from 'drizzle-orm'
 import mime from 'mime'
 import { addHours } from 'date-fns'
 
@@ -142,45 +142,63 @@ export const search = async (
 	}
 	const q = queryResult.data
 
-	const documents = await db.selectDistinctOn([table.documents.id], {
-		id: table.documents.id,
-		title: table.documents.title,
-		description: table.documents.description,
-		fileType: table.documents.fileType,
-		version: table.documents.version,
-		size: table.documents.size,
-		content: q.exlcudeContent ? sql`''` : table.documents.content,
-		tags: table.documents.tags,
-		createdAt: table.documents.createdAt,
-		updatedAt: table.documents.updatedAt,
-	})
-		.from(table.documents)
-		.innerJoin(table.documentAccess, eq(table.documents.id, table.documentAccess.documentId))
-		.where(
-			and(
-				exists(
-					db.select()
-						.from(table.documentAccess)
-						.where(
-							and(
-								eq(table.documentAccess.documentId, table.documents.id),
-								eq(table.documentAccess.userId, userId),
-							),
-						),
+	const filters = and(
+		exists(
+			db.select()
+				.from(table.documentAccess)
+				.where(
+					and(
+						eq(table.documentAccess.documentId, table.documents.id),
+						eq(table.documentAccess.userId, userId),
+					),
 				),
-				q.title ? ilike(table.documents.title, `%${q.title}%`) : undefined,
-				q.author ? ilike(table.users.username, `%${q.author}%`) : undefined,
-				q.author ? inArray(table.documentAccess.role, ['owner', 'editor']) : undefined,
-				q.tags && q.tags.length !== 0 ? arrayContains(table.documents.tags, q.tags) : undefined,
-				q.fileType ? eq(table.documents.fileType, q.fileType) : undefined,
-			),
-		)
-		.limit(q.limit)
-		.offset(q.offset)
-		.execute()
-		.then(r => r)
+		),
+		q.title ? ilike(table.documents.title, `%${q.title}%`) : undefined,
+		q.author ? ilike(table.users.username, `%${q.author}%`) : undefined,
+		q.author ? inArray(table.documentAccess.role, ['owner', 'editor']) : undefined,
+		q.tags && q.tags.length !== 0 ? arrayContains(table.documents.tags, q.tags) : undefined,
+		q.fileType ? eq(table.documents.fileType, q.fileType) : undefined,
+	)
 
-	return httpResponse({ json: { documents }, statusCode: HttpStatusCodes.OK })
+	const [totalItems, documents] = await Promise.all([
+		db.select({
+			count: countDistinct(table.documents.id)
+		})
+			.from(table.documents)
+			.innerJoin(table.documentAccess, eq(table.documents.id, table.documentAccess.documentId))
+			.where(filters)
+			.execute()
+			.then(r => r.at(0)?.count ?? 0),
+
+		db.selectDistinctOn([table.documents.id], {
+			id: table.documents.id,
+			title: table.documents.title,
+			description: table.documents.description,
+			fileType: table.documents.fileType,
+			version: table.documents.version,
+			size: table.documents.size,
+			content: q.exlcudeContent ? sql<string>`''` : table.documents.content,
+			tags: table.documents.tags,
+			createdAt: table.documents.createdAt,
+			updatedAt: table.documents.updatedAt,
+		})
+			.from(table.documents)
+			.innerJoin(table.documentAccess, eq(table.documents.id, table.documentAccess.documentId))
+			.where(filters)
+			.limit(q.limit)
+			.offset(q.limit * (q.page - 1))
+			.execute()
+	])
+
+	const jsonResponse: z.infer<typeof dtos.SearchDocumentsResponse> = {
+		items: documents,
+		perPage: q.limit,
+		currentPage: q.page,
+		totalItems,
+		totalPages: Math.ceil(totalItems / q.limit)
+	}
+
+	return httpResponse({ json: jsonResponse, statusCode: HttpStatusCodes.OK })
 }
 
 export const getAccessList = async (
@@ -341,7 +359,7 @@ export const createLink = async (
 	}
 
 	const linkId = ulid()
-	const expiresAt = addHours(new Date(), 1)
+	const expiresAt = addHours(new Date(), 1).toISOString()
 	const fileExtension = mime.getExtension(doc.fileType) ?? 'bin'
 
 	await db.insert(table.documentLinks).values({
@@ -349,14 +367,13 @@ export const createLink = async (
 		documentId,
 		fileExtension,
 		fileMimeType: doc.fileType,
-		createdAt: new Date(),
 		expiresAt,
 	})
 
 	const path = `/documents/download/${linkId}.${fileExtension}`
 	const url = `${origin}${path}`
 
-	return httpResponse({ json: { linkId, url, expiresAt: expiresAt.toISOString() }, statusCode: HttpStatusCodes.OK })
+	return httpResponse({ json: { linkId, url, expiresAt }, statusCode: HttpStatusCodes.OK })
 }
 
 export const downloadByLink = async (
@@ -387,7 +404,7 @@ export const downloadByLink = async (
 		return httpResponse({ json: 'Link not found', statusCode: HttpStatusCodes.NOT_FOUND })
 	}
 
-	if (link.expiresAt < new Date()) {
+	if (new Date(link.expiresAt) < new Date()) {
 		return httpResponse({ json: 'Link expired', statusCode: HttpStatusCodes.GONE })
 	}
 

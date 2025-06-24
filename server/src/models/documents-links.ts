@@ -14,9 +14,9 @@ export const documentLinks = pgTable('document_links', {
 		.notNull(),
 	fileMimeType: varchar('mime_type', { length: len.MEDIUM })
 		.notNull(),
-	createdAt: timestamp('created_at')
+	createdAt: timestamp('created_at', { mode: 'string' })
 		.defaultNow()
 		.notNull(),
-	expiresAt: timestamp('expires_at')
+	expiresAt: timestamp('expires_at', { mode: 'string' })
 		.notNull(),
 })

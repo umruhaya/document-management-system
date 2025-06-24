@@ -52,6 +52,9 @@ export const GetDocumentByIdResponse = z.object({
 
 // Search documents
 export const SearchDocumentsQuery = z.object({
+	page: z.coerce.number().int().positive().default(1),
+	limit: z.coerce.number().int().positive().max(50).default(10),
+	sort: z.string().optional(),
 	title: z.string().optional(),
 	author: z.string().optional(),
 	tags: z.union([z.string(), z.string().array()])
@@ -59,12 +62,14 @@ export const SearchDocumentsQuery = z.object({
 		.transform(tags => tags ? (Array.isArray(tags) ? tags : [tags]) : undefined),
 	fileType: z.string().optional(),
 	version: z.coerce.number().optional(),
-	limit: z.coerce.number().int().positive().max(50).default(10),
-	offset: z.coerce.number().int().nonnegative().default(0),
 	exlcudeContent: z.literal('true').default('true').optional(),
 })
 export const SearchDocumentsResponse = z.object({
-	documents: z.array(z.object({
+	totalItems: z.number(),     
+	totalPages: z.number(), 
+	currentPage: z.number(),    
+	perPage: z.number(),
+	items: z.array(z.object({
 		id: z.string(),
 		title: z.string(),
 		description: z.string(),
