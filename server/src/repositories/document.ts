@@ -1,16 +1,22 @@
 import { addHours } from 'date-fns'
 import { and, arrayContains, countDistinct, eq, exists, ilike, inArray, sql } from 'drizzle-orm'
 import mime from 'mime'
+import { inject, injectable } from 'tsyringe'
 import { ulid } from 'ulidx'
 import { db, table } from '~/db'
 import { Result, type ResultType } from '~/lib/result'
+import type { Logger } from '~/logger/Logger'
 import type * as dtos from '~/presentation/http/dtos/documents'
 
+@injectable()
 export class DocumentRepository {
+	constructor(@inject('Logger') private readonly logger: Logger) {}
+
 	async create(
 		userId: string,
 		data: dtos.DocumentCreateType,
 	): Promise<ResultType<dtos.CreateDocumentResponseType, { type: 'Unknown'; message: string }>> {
+		this.logger.info(`Creating document for user: ${userId}`)
 		const documentId = ulid()
 		const size = data.content.length
 		try {
@@ -45,6 +51,7 @@ export class DocumentRepository {
 	): Promise<
 		ResultType<dtos.PatchDocumentResponseType, { type: 'Forbidden' | 'NotFound' | 'Unknown'; message: string }>
 	> {
+		this.logger.info(`Patching document ${documentId} by user ${userId}`)
 		const access = await db
 			.select({ role: table.documentAccess.role })
 			.from(table.documentAccess)
@@ -81,6 +88,7 @@ export class DocumentRepository {
 		userId: string,
 		documentId: string,
 	): Promise<ResultType<dtos.GetDocumentByIdResponseType, { type: 'NotFound' }>> {
+		this.logger.info(`Getting document ${documentId} for user ${userId}`)
 		const document = await db
 			.selectDistinctOn([table.documents.id], {
 				id: table.documents.id,
@@ -109,6 +117,7 @@ export class DocumentRepository {
 		userId: string,
 		q: dtos.SearchDocumentsQueryType,
 	): Promise<ResultType<dtos.SearchDocumentsResponseType, { type: 'Unknown'; message: string }>> {
+		this.logger.info(`Searching documents for user ${userId}`)
 		const filters = and(
 			exists(
 				db
@@ -170,6 +179,7 @@ export class DocumentRepository {
 		userId: string,
 		documentId: string,
 	): Promise<ResultType<dtos.GetDocumentAccessListResponseType, { type: 'Forbidden' | 'NotFound' }>> {
+		this.logger.info(`Getting access list for document ${documentId} by user ${userId}`)
 		const hasAccess = await db
 			.select()
 			.from(table.documentAccess)
@@ -200,6 +210,7 @@ export class DocumentRepository {
 		targetUserId: string,
 		role: 'viewer' | 'editor' | 'owner',
 	): Promise<ResultType<dtos.PatchDocumentAccessResponseType, { type: 'Forbidden' | 'Unknown'; message: string }>> {
+		this.logger.info(`Patching access for document ${documentId} by user ${userId} for target user ${targetUserId}`)
 		const isOwner = await db
 			.select()
 			.from(table.documentAccess)
@@ -242,6 +253,7 @@ export class DocumentRepository {
 		documentId: string,
 		targetUserId: string,
 	): Promise<ResultType<dtos.PatchDocumentAccessResponseType, { type: 'Forbidden' | 'Unknown'; message: string }>> {
+		this.logger.info(`Revoking access for document ${documentId} by user ${userId} for target user ${targetUserId}`)
 		const isOwner = await db
 			.select()
 			.from(table.documentAccess)
@@ -269,6 +281,7 @@ export class DocumentRepository {
 	): Promise<
 		ResultType<dtos.CreateDocumentLinkResponseType, { type: 'Forbidden' | 'NotFound' | 'Unknown'; message: string }>
 	> {
+		this.logger.info(`Creating link for document ${documentId} by user ${userId}`)
 		const access = await db
 			.select()
 			.from(table.documentAccess)
@@ -312,6 +325,7 @@ export class DocumentRepository {
 			{ type: 'NotFound' | 'Gone' }
 		>
 	> {
+		this.logger.info(`Downloading document by link: ${filename}`)
 		const linkId = filename.split('.')[0] ?? filename
 		const link = await db
 			.select({

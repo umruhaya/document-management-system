@@ -1,9 +1,12 @@
 import { Router } from 'express'
-import * as documentsController from '~/presentation/http/controllers/documents'
+import { container } from '~/container'
+import { DocumentsController } from '~/presentation/http/controllers/documents'
 import { jwtMiddleware } from '~/presentation/http/express/middlewares/jwt'
 
 const router = Router()
 export const documentsRouter = router
+
+const documentsController = container.resolve(DocumentsController)
 
 // POST /documents
 router.post('/', jwtMiddleware(), async (req, res) => {

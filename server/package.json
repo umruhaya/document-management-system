@@ -22,6 +22,7 @@
 		"mime": "^4.0.7",
 		"pg-error-enum": "^1.0.2",
 		"postgres": "^3.4.7",
+		"reflect-metadata": "^0.2.2",
 		"stoker": "^1.4.2",
 		"tsyringe": "^4.10.0",
 		"ulidx": "^2.4.1",

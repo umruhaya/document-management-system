@@ -1,9 +1,12 @@
 import { Router } from 'express'
-import * as usersController from '~/presentation/http/controllers/users'
+import { container } from '~/container'
+import { UsersController } from '~/presentation/http/controllers/users'
 import { jwtMiddleware } from '~/presentation/http/express/middlewares/jwt'
 
 const router = Router()
 export const usersRouter = router
+
+const usersController = container.resolve(UsersController)
 
 // GET /users?username=...
 router.get('/', async (req, res) => {

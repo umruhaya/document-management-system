@@ -1,3 +1,4 @@
+import 'reflect-metadata'
 import { env } from '~/env'
 import { expressApp } from '~/presentation/http/express/app'
 import { formatStartUpMessage } from './utils'

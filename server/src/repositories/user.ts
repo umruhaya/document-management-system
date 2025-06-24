@@ -2,15 +2,21 @@ import argon2 from 'argon2'
 import { eq } from 'drizzle-orm'
 import { sign } from 'hono/jwt'
 import { PostgresError } from 'pg-error-enum'
+import { inject, injectable } from 'tsyringe'
 import { ulid } from 'ulidx'
 import { DatabaseError, db, table } from '~/db'
 import { env } from '~/env'
 import { Result, type ResultType } from '~/lib/result'
+import type { Logger } from '~/logger/Logger'
 
+@injectable()
 export class UserRepository {
+	constructor(@inject('Logger') private readonly logger: Logger) {}
+
 	async getByUsername(
 		username: string,
 	): Promise<ResultType<{ userId: string; username: string }, { type: 'UserNotFound'; message: string }>> {
+		this.logger.info(`Fetching user by username: ${username}`)
 		const user = await db
 			.select({
 				userId: table.users.id,
@@ -34,6 +40,7 @@ export class UserRepository {
 			{ type: 'UserAlreadyExists'; message: string } | { type: 'Unknown'; message: string }
 		>
 	> {
+		this.logger.info(`Creating user: ${username}`)
 		const hashedPassword = await argon2.hash(password)
 		const userId = ulid()
 		try {
@@ -72,6 +79,7 @@ export class UserRepository {
 			{ type: 'InvalidCredentials'; message: string } | { type: 'Unknown'; message: string }
 		>
 	> {
+		this.logger.info(`User login attempt: ${username}`)
 		const user = await db
 			.select()
 			.from(table.users)
@@ -109,6 +117,7 @@ export class UserRepository {
 	): Promise<
 		ResultType<{ updated: boolean }, { type: 'UserNotFound'; message: string } | { type: 'Unknown'; message: string }>
 	> {
+		this.logger.info(`Updating user: ${userId}`)
 		if (!username && !password) {
 			return Result.ok({ updated: false })
 		}
@@ -144,6 +153,7 @@ export class UserRepository {
 			{ type: 'UserNotFound'; message: string }
 		>
 	> {
+		this.logger.info(`Fetching current user: ${userId}`)
 		const user = await db
 			.select({
 				id: table.users.id,
