@@ -15,19 +15,19 @@ export class AclRepositoryPg extends AclRepository {
 					.from(table.documentAccess)
 					.where(eq(table.documentAccess.documentId, documentId))
 					.execute()
-				if (!entries.length) {
-					return Result.Err(new EntityNotFoundError('ACL', `No ACL found for documentId: ${documentId}`))
-				}
 				return Result.Ok(entries)
 			},
-			onError: (error) =>
-				Result.Err(
+			onError: (error) => {
+				console.debug({ documentId })
+				console.debug(error)
+				return Result.Err(
 					new EntityUnknownError(
 						'AclRepository',
 						`ACL fetch failed for documentId: ${documentId}, Details: ${error}`,
 						'Failed acl.getByDocumentId',
 					),
-				),
+				)
+			},
 		})
 	}
 

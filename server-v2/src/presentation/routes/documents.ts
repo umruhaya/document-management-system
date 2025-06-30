@@ -12,9 +12,9 @@ documentsRouter.get('/:id', jwtMiddleware(), documentsController.getById)
 
 documentsRouter.patch('/:id', jwtMiddleware(), documentsController.update)
 
-// documentsRouter.get('/:documentId/access', jwtMiddleware(), documentsController.getAccessList)
+documentsRouter.get('/:documentId/access', jwtMiddleware(), documentsController.getAccessList)
 
-// documentsRouter.patch('/:documentId/access', jwtMiddleware(), documentsController.patchAccess)
+documentsRouter.patch('/:documentId/access', jwtMiddleware(), documentsController.patchAccess)
 
 // documentsRouter.post('/:documentId/link', jwtMiddleware(), documentsController.createLink)
 

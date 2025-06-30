@@ -1,5 +1,6 @@
 import { Result } from '@carbonteq/fp'
 import { ulid } from 'ulidx'
+import type { AccessControlListEntity, DocumentRole } from '~/domain/access-control-entry/access-control-entry.entity'
 import type { AclRepository } from '~/domain/access-control-entry/acl.repository'
 import type { DocumentEntity } from '~/domain/document/document.entity'
 import type { DocumentRepository } from '~/domain/document/document.repository'
@@ -61,5 +62,19 @@ export class DocumentService {
 					: Result.Err(new EntityNotFoundError('Document', `docId: ${document.id}`))
 			})
 			.toPromise()
+	}
+
+	async getAclEntries(documentId: string): Promise<Result<AccessControlListEntity[], EntityError>> {
+		return this.aclRepo.getByDocumentId(documentId)
+	}
+
+	async updateAcl(
+		userId: string,
+		documentId: string,
+		action: { remove: true } | { remove: false; role: DocumentRole },
+	): Promise<Result<true, EntityError>> {
+		return action.remove
+			? this.aclRepo.revokeAcl(userId, documentId)
+			: this.aclRepo.setAcl(userId, documentId, action.role)
 	}
 }

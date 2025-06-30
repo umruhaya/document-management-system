@@ -113,11 +113,17 @@ export type GetDocumentAccessListResponseType = z.infer<typeof GetDocumentAccess
 // Patch document access
 export const PatchDocumentAccessParams = z.object({ documentId: z.string() })
 export type PatchDocumentAccessParamsType = z.infer<typeof PatchDocumentAccessParams>
-export const PatchDocumentAccessRequest = z.object({
-	targetUserId: z.string(),
-	role: z.enum(['viewer', 'editor', 'owner']).optional(),
-	remove: z.boolean().optional(),
-})
+export const PatchDocumentAccessRequest = z.union([
+	z.object({
+		targetUserId: z.string(),
+		role: z.enum(['viewer', 'editor', 'owner']),
+		remove: z.literal(false),
+	}),
+	z.object({
+		targetUserId: z.string(),
+		remove: z.literal(true),
+	}),
+])
 export type PatchDocumentAccessRequestType = z.infer<typeof PatchDocumentAccessRequest>
 export const PatchDocumentAccessResponse = z.object({ success: z.boolean() })
 export type PatchDocumentAccessResponseType = z.infer<typeof PatchDocumentAccessResponse>

@@ -69,4 +69,40 @@ export const documentsController = {
 			Err: (err) => res.status(mapEntityErrorToStatusCode(err)).json({ error: err.message }),
 		})
 	},
+
+	async getAccessList(req: Request, res: Response) {
+		const { data: params, success, error } = dtos.GetDocumentAccessListParams.safeParse(req.params)
+		if (!success) {
+			res.status(422).json(error.message)
+			return
+		}
+		const result = await documentService.getAclEntries(params.documentId)
+		matchRes(result, {
+			Ok: (entries) => res.status(200).json({ access: entries }),
+			Err: (err) => res.status(mapEntityErrorToStatusCode(err)).json({ error: err.message }),
+		})
+	},
+
+	async patchAccess(req: Request, res: Response) {
+		const {
+			data: params,
+			success: paramSuccess,
+			error: paramError,
+		} = dtos.PatchDocumentAccessParams.safeParse(req.params)
+		if (!paramSuccess) {
+			res.status(422).json(paramError.message)
+			return
+		}
+		const { data: body, success: bodySuccess, error: bodyError } = dtos.PatchDocumentAccessRequest.safeParse(req.body)
+		if (!bodySuccess) {
+			res.status(422).json(bodyError.message)
+			return
+		}
+		const action = body.remove ? ({ remove: true } as const) : ({ remove: false, role: body.role } as const)
+		const result = await documentService.updateAcl(body.targetUserId, params.documentId, action)
+		matchRes(result, {
+			Ok: () => res.status(204).send(),
+			Err: (err) => res.status(mapEntityErrorToStatusCode(err)).json({ error: err.message }),
+		})
+	},
 }

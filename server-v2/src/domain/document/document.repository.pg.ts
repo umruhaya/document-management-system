@@ -1,5 +1,5 @@
 import { Result } from '@carbonteq/fp'
-import { and, arrayContains, countDistinct, eq, exists, ilike, inArray, sql } from 'drizzle-orm'
+import { and, arrayContains, countDistinct, eq, ilike, sql } from 'drizzle-orm'
 import { PostgresError } from 'pg-error-enum'
 import { DocumentEntity } from '~/domain/document/document.entity'
 import { DocumentRepository } from '~/domain/document/document.repository'
@@ -7,17 +7,6 @@ import { EntityAlreadyExistsError, type EntityError, EntityNotFoundError, Entity
 import { DatabaseError, db, table } from '~/infra/database/client'
 import type { PaginatedCollection, PaginationOptions } from '~/presentation/types'
 import { TryCatchAsync } from '~/utils/trycatch'
-
-
-// const access = await db
-// 					.select()
-// 					.from(table.documentAccess)
-// 					.where(and(eq(table.documentAccess.userId, userId), eq(table.documentAccess.documentId, documentId)))
-// 					.execute()
-// 					.then(r => r.at(0))
-// 				if(!access) {
-					
-// 				}
 
 export class DocumentRepositoryPg extends DocumentRepository {
 	search(
@@ -34,7 +23,7 @@ export class DocumentRepositoryPg extends DocumentRepository {
 	): Promise<Result<PaginatedCollection<DocumentEntity>, EntityError>> {
 		return TryCatchAsync({
 			fn: async () => {
-				const { page, limit, sort, filters } = option
+				const { page, limit, filters } = option
 				const filtersQuery = and(
 					eq(table.documentAccess.userId, userId), // user has access to the document
 					filters.title ? ilike(table.documents.title, `%${filters.title}%`) : undefined,
