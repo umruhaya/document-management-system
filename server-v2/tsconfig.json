@@ -1,0 +1,33 @@
+{
+	"compilerOptions": {
+		"moduleDetection": "force",
+		"lib": ["es2022"],
+		"module": "nodenext",
+		"moduleResolution": "nodenext",
+
+		// enable decorators for `reflect-metadata` and DI
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+
+		// checks
+		"noUncheckedIndexedAccess": true,
+		"noImplicitAny": true,
+		"noFallthroughCasesInSwitch": true,
+		"noUnusedParameters": true,
+		"noErrorTruncation": true,
+		"strictNullChecks": true,
+		"useUnknownInCatchVariables": true,
+
+		"strict": true,
+		"jsx": "react-jsx",
+		"jsxImportSource": "hono/jsx",
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+
+		"baseUrl": ".",
+		"paths": {
+			"~/*": ["./src/*"]
+		}
+	},
+	"include": ["src"]
+}

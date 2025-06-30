@@ -1,0 +1,23 @@
+# DMS Server
+
+To install dependencies:
+
+```sh
+bun install
+```
+
+To run:
+
+```sh
+bun run dev
+```
+
+open http://localhost:3000
+
+## Formatting
+
+We are using [biome.js](https://biomejs.dev/guides/getting-started/#usage) for formatting
+
+```bash
+pnpm exec biome format --write # format all files
+```

@@ -1,0 +1,18 @@
+import { drizzle } from 'drizzle-orm/postgres-js'
+import postgres from 'postgres'
+import { table } from '~/infra/database/models'
+import { env } from '~/infra/env'
+
+const HOST = env.DATABASE_HOST
+const NAME = env.DATABASE_NAME
+const PASSWORD = env.DATABASE_PASSWORD
+const PORT = env.DATABASE_PORT
+const USERNAME = env.DATABASE_USERNAME
+
+const databaseConnectionString = `postgres://${USERNAME}:${PASSWORD}@${HOST}:${PORT}/${NAME}?sslmode=prefer`
+
+const queryClient = postgres(databaseConnectionString)
+
+export const DatabaseError = postgres.PostgresError
+export const db = drizzle(queryClient, { schema: table })
+export { table }
