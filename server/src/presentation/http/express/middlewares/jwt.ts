@@ -1,7 +1,7 @@
 import { expressjwt } from 'express-jwt'
 import jwt from 'jsonwebtoken'
 import { env } from '~/env'
-import type { JWTContent, JWTDecodedPayload } from '~/presentation/http/types'
+import type { JWTContent } from '~/presentation/http/types'
 
 export const sign = (payload: JWTContent) => {
 	return jwt.sign(payload, env.JWT_SECRET, { algorithm: 'HS256', expiresIn: '4h' })
@@ -13,12 +13,4 @@ export const jwtMiddleware = () => {
 		secret: env.JWT_SECRET,
 		requestProperty: 'jwtPayload',
 	})
-}
-
-declare global {
-	namespace Express {
-		interface Request {
-			jwtPayload?: JWTDecodedPayload // Make it optional if it might not always be present
-		}
-	}
 }

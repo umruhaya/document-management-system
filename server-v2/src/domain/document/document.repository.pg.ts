@@ -1,13 +1,93 @@
 import { Result } from '@carbonteq/fp'
-import { eq } from 'drizzle-orm'
+import { and, arrayContains, countDistinct, eq, exists, ilike, inArray, sql } from 'drizzle-orm'
 import { PostgresError } from 'pg-error-enum'
 import { DocumentEntity } from '~/domain/document/document.entity'
 import { DocumentRepository } from '~/domain/document/document.repository'
 import { EntityAlreadyExistsError, type EntityError, EntityNotFoundError, EntityUnknownError } from '~/domain/errors'
 import { DatabaseError, db, table } from '~/infra/database/client'
+import type { PaginatedCollection, PaginationOptions } from '~/presentation/types'
 import { TryCatchAsync } from '~/utils/trycatch'
 
+
+// const access = await db
+// 					.select()
+// 					.from(table.documentAccess)
+// 					.where(and(eq(table.documentAccess.userId, userId), eq(table.documentAccess.documentId, documentId)))
+// 					.execute()
+// 					.then(r => r.at(0))
+// 				if(!access) {
+					
+// 				}
+
 export class DocumentRepositoryPg extends DocumentRepository {
+	search(
+		userId: string,
+		option: PaginationOptions<{
+			title?: string
+			fileType?: string
+			sort?: string
+			tags?: string[]
+			version?: number
+			author?: string
+			exlcudeContent?: 'true'
+		}>,
+	): Promise<Result<PaginatedCollection<DocumentEntity>, EntityError>> {
+		return TryCatchAsync({
+			fn: async () => {
+				const { page, limit, sort, filters } = option
+				const filtersQuery = and(
+					eq(table.documentAccess.userId, userId), // user has access to the document
+					filters.title ? ilike(table.documents.title, `%${filters.title}%`) : undefined,
+					filters.tags && filters.tags.length !== 0 ? arrayContains(table.documents.tags, filters.tags) : undefined,
+					filters.fileType ? eq(table.documents.fileType, filters.fileType) : undefined,
+				)
+				const [totalItems, documents] = await Promise.all([
+					db
+						.select({
+							count: countDistinct(table.documents.id),
+						})
+						.from(table.documents)
+						.innerJoin(table.documentAccess, eq(table.documents.id, table.documentAccess.documentId))
+						.where(filtersQuery)
+						.execute()
+						.then((r) => r.at(0)?.count ?? 0),
+
+					db
+						.selectDistinctOn([table.documents.id], {
+							id: table.documents.id,
+							title: table.documents.title,
+							description: table.documents.description,
+							fileType: table.documents.fileType,
+							version: table.documents.version,
+							size: table.documents.size,
+							content: filters.exlcudeContent ? sql<string>`''` : table.documents.content,
+							tags: table.documents.tags,
+							createdAt: table.documents.createdAt,
+							updatedAt: table.documents.updatedAt,
+						})
+						.from(table.documents)
+						.innerJoin(table.documentAccess, eq(table.documents.id, table.documentAccess.documentId))
+						.where(filtersQuery)
+						.limit(limit)
+						.offset(limit * (page - 1))
+						.execute()
+						.then((docs) =>
+							docs.map((d) => ({ ...d, createdAt: new Date(d.createdAt), updatedAt: new Date(d.updatedAt) })),
+						),
+				])
+				return Result.Ok({
+					items: documents,
+					perPage: limit,
+					currentPage: page,
+					totalItems,
+					totalPages: Math.ceil(totalItems / limit),
+				})
+			},
+			onError: (error) =>
+				Result.Err(new EntityUnknownError('DocumentRepository', `Error: ${error}`, 'Failed document.search')),
+		})
+	}
+
 	getById(documentId: string): Promise<Result<DocumentEntity, EntityError>> {
 		return TryCatchAsync({
 			fn: async () => {
@@ -30,13 +110,17 @@ export class DocumentRepositoryPg extends DocumentRepository {
 		})
 	}
 
-	create(document: DocumentEntity): Promise<Result<DocumentEntity, EntityError>> {
+	create(userId: string, document: DocumentEntity): Promise<Result<DocumentEntity, EntityError>> {
 		return TryCatchAsync({
 			fn: async () => {
-				await db.insert(table.documents).values({
-					...document,
-					createdAt: document.createdAt.toISOString(),
-					updatedAt: document.updatedAt.toISOString(),
+				await db.transaction(async (tx) => {
+					await tx.insert(table.documents).values({
+						...document,
+						createdAt: document.createdAt.toISOString(),
+						updatedAt: document.updatedAt.toISOString(),
+					})
+					// create ACL entry for user to access the document an owner
+					await tx.insert(table.documentAccess).values({ userId, documentId: document.id, role: 'owner' })
 				})
 				return Result.Ok(document)
 			},

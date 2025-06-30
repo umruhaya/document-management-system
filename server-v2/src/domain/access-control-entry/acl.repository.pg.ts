@@ -31,6 +31,28 @@ export class AclRepositoryPg extends AclRepository {
 		})
 	}
 
+	getAcl(userId: string, documentId: string): Promise<Result<AccessControlListEntity, EntityError>> {
+		return TryCatchAsync({
+			fn: async () => {
+				const aclEntry = await db
+					.select()
+					.from(table.documentAccess)
+					.where(and(eq(table.documentAccess.userId, userId), eq(table.documentAccess.documentId, documentId)))
+					.execute()
+					.then((r) => r.at(0))
+				return aclEntry ? Result.Ok(aclEntry) : Result.Err(new EntityNotFoundError('ACL', { userId, documentId }))
+			},
+			onError: (error) =>
+				Result.Err(
+					new EntityUnknownError(
+						'AclRepository',
+						`ACL set failed for documentId: ${documentId}, Details: ${error}`,
+						'Failed acl.setAcl',
+					),
+				),
+		})
+	}
+
 	setAcl(userId: string, documentId: string, role: DocumentRole): Promise<Result<true, EntityError>> {
 		return TryCatchAsync({
 			fn: async () => {

@@ -6,7 +6,7 @@ export const documentsRouter = Router()
 
 documentsRouter.post('/', jwtMiddleware(), documentsController.create)
 
-// documentsRouter.get('/', jwtMiddleware(), documentsController.search)
+documentsRouter.get('/', jwtMiddleware(), documentsController.search)
 
 documentsRouter.get('/:id', jwtMiddleware(), documentsController.getById)
 
