@@ -131,15 +131,19 @@ export type PatchDocumentAccessResponseType = z.infer<typeof PatchDocumentAccess
 // Create document link
 export const CreateDocumentLinkParams = z.object({ documentId: z.string() })
 export type CreateDocumentLinkParamsType = z.infer<typeof CreateDocumentLinkParams>
+
 export const CreateDocumentLinkResponse = z.object({
-	linkId: z.string(),
-	url: z.string(),
-	expiresAt: z.string(),
+	link: z.string(),
 })
 export type CreateDocumentLinkResponseType = z.infer<typeof CreateDocumentLinkResponse>
 
 // Download document by link
-export const DownloadDocumentByLinkParams = z.object({ filename: z.string() })
-export type DownloadDocumentByLinkParamsType = z.infer<typeof DownloadDocumentByLinkParams>
+export const DownloadDocumentByLinkQuery = z.object({
+	documentId: z.string(),
+	method: z.string(),
+	expiresAt: z.coerce.number(),
+	signature: z.string(),
+})
+export type DownloadDocumentByLinkQueryType = z.infer<typeof DownloadDocumentByLinkQuery>
 export const DownloadDocumentByLinkResponse = z.string()
 export type DownloadDocumentByLinkResponseType = z.infer<typeof DownloadDocumentByLinkResponse>

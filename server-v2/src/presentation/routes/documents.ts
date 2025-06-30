@@ -4,6 +4,8 @@ import { jwtMiddleware } from '~/presentation/middlewares/jwt'
 
 export const documentsRouter = Router()
 
+documentsRouter.get('/download', documentsController.downloadByLink)
+
 documentsRouter.post('/', jwtMiddleware(), documentsController.create)
 
 documentsRouter.get('/', jwtMiddleware(), documentsController.search)
@@ -16,6 +18,4 @@ documentsRouter.get('/:documentId/access', jwtMiddleware(), documentsController.
 
 documentsRouter.patch('/:documentId/access', jwtMiddleware(), documentsController.patchAccess)
 
-// documentsRouter.post('/:documentId/link', jwtMiddleware(), documentsController.createLink)
-
-// documentsRouter.get('/download/:filename', jwtMiddleware(), documentsController.downloadByLink)
+documentsRouter.post('/:documentId/link', jwtMiddleware(), documentsController.createLink)

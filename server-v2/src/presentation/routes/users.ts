@@ -4,8 +4,8 @@ import { jwtMiddleware } from '~/presentation/middlewares/jwt'
 
 export const usersRouter = Router()
 
-usersRouter.get('/', usersController.getByUsername)
 usersRouter.post('/', usersController.create)
-usersRouter.patch('/', usersController.update)
+usersRouter.get('/', usersController.getByUsername)
 usersRouter.post('/token', usersController.login)
+usersRouter.patch('/', jwtMiddleware(), usersController.update)
 usersRouter.get('/me', jwtMiddleware(), usersController.getMe)

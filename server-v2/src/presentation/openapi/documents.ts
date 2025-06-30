@@ -135,12 +135,12 @@ export const createDocumentLink = createRoute({
 
 export const downloadDocumentByLink = createRoute({
 	method: 'get',
-	path: '/documents/download/{filename}',
+	path: '/documents/download/',
 	operationId: 'downloadDocumentByLink',
 	tags: ['Documents'],
 	summary: 'Download a document using a short-lived link',
 	request: {
-		params: dtos.DownloadDocumentByLinkParams,
+		query: dtos.DownloadDocumentByLinkQuery,
 	},
 	responses: {
 		[HttpStatusCodes.OK]: {

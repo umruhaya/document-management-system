@@ -1,10 +1,15 @@
 import { Result } from '@carbonteq/fp'
 import { ulid } from 'ulidx'
+import {
+	DocumentPresignedUrlService,
+	type PresignOptions,
+	type VerificationInput,
+} from '~/app/services/document-presigned-url.service'
 import type { AccessControlListEntity, DocumentRole } from '~/domain/access-control-entry/access-control-entry.entity'
 import type { AclRepository } from '~/domain/access-control-entry/acl.repository'
 import type { DocumentEntity } from '~/domain/document/document.entity'
 import type { DocumentRepository } from '~/domain/document/document.repository'
-import { type EntityError, EntityNotFoundError } from '~/domain/errors'
+import { type EntityError, EntityNotFoundError, EntityValidationError } from '~/domain/errors'
 import type { DocumentCreateType, DocumentPatchParamsType, DocumentPatchType } from '~/presentation/dtos/documents'
 import type { PaginationOptions } from '~/presentation/types'
 
@@ -76,5 +81,22 @@ export class DocumentService {
 		return action.remove
 			? this.aclRepo.revokeAcl(userId, documentId)
 			: this.aclRepo.setAcl(userId, documentId, action.role)
+	}
+
+	async createLink(userId: string, options: PresignOptions): Promise<Result<string, EntityError>> {
+		// first check if the user has access
+		const result = await this.aclRepo.getAcl(userId, options.documentId)
+		return result.isErr() && result instanceof EntityNotFoundError
+			? // if no acl found, return a Document Not Found Error
+				Result.Err(new EntityNotFoundError('Document', `docId: ${options.documentId}`))
+			: // else get the document and return its result
+				result.map((_entry) => DocumentPresignedUrlService.presignUrl(options))
+	}
+
+	async getDocumentByLink(input: VerificationInput) {
+		const verified = DocumentPresignedUrlService.verifySignature(input)
+		return verified
+			? this.documentRepo.getById(input.documentId)
+			: Result.Err(new EntityValidationError('DocumentLink', input, 'Signature Did Not Match'))
 	}
 }

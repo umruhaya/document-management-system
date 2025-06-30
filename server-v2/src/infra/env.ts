@@ -11,6 +11,7 @@ export const envSchema = z.object({
 	DATABASE_PORT: z.coerce.number().default(5432),
 
 	JWT_SECRET: z.string(),
+	HMAC_SIGNING_KEY: z.string(),
 })
 
 export const env = envSchema.parse(process.env)

@@ -6,6 +6,12 @@ import { usersRouter } from '~/presentation/routes/users'
 const app = express()
 
 app.use(express.json())
+
+app.use((req, res, next) => {
+	console.log(`[${req.method}] ${req.path}`)
+	next()
+})
+
 app.use('/users', usersRouter)
 app.use('/documents', documentsRouter)
 

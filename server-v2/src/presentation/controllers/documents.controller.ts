@@ -1,5 +1,6 @@
 import { matchRes } from '@carbonteq/fp'
 import type { Request, Response } from 'express'
+import mime from 'mime'
 import { DocumentService } from '~/app/services/document.service'
 import { AclRepositoryPg } from '~/domain/access-control-entry/acl.repository.pg'
 import { DocumentRepositoryPg } from '~/domain/document/document.repository.pg'
@@ -102,6 +103,46 @@ export const documentsController = {
 		const result = await documentService.updateAcl(body.targetUserId, params.documentId, action)
 		matchRes(result, {
 			Ok: () => res.status(204).send(),
+			Err: (err) => res.status(mapEntityErrorToStatusCode(err)).json({ error: err.message }),
+		})
+	},
+
+	async createLink(req: Request, res: Response): Promise<void> {
+		const { userId } = (req as AuthRequest).jwtPayload
+		const { data: params, success, error } = dtos.CreateDocumentLinkParams.safeParse(req.params)
+		if (!success) {
+			res.status(422).json(error.message)
+			return
+		}
+		const result = await documentService.createLink(userId, {
+			baseUrl: `${req.host}/documents/download`,
+			documentId: params.documentId,
+			expiresAt: Date.now() + 2 * 60 * 60 * 1000,
+			method: 'get',
+		})
+		matchRes(result, {
+			Ok: (link) => res.status(201).json({ link }),
+			Err: (err) => res.status(mapEntityErrorToStatusCode(err)).json({ error: err.message }),
+		})
+	},
+
+	async downloadByLink(req: Request, res: Response): Promise<void> {
+		const { data: query, success, error } = dtos.DownloadDocumentByLinkQuery.safeParse(req.query)
+		if (!success) {
+			res.status(422).json(error.message)
+			return
+		}
+		const result = await documentService.getDocumentByLink(query)
+		matchRes(result, {
+			Ok: (doc) => {
+				const fileExtension = mime.getExtension(doc.fileType) ?? 'bin'
+				const headers = {
+					'Content-Disposition': `attachment; filename="${doc.title}.${fileExtension}"`,
+					'Content-Type': doc.fileType ?? 'text/plain',
+				}
+				res.set(headers)
+				res.send(doc.content)
+			},
 			Err: (err) => res.status(mapEntityErrorToStatusCode(err)).json({ error: err.message }),
 		})
 	},
