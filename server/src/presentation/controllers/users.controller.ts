@@ -1,7 +1,7 @@
 import { matchRes } from '@carbonteq/fp'
 import type { Request, Response } from 'express'
 import { UserService } from '~/app/services/user.service'
-import { UserRepositoryPg } from '~/domain/user/user.repository.pg'
+import { UserRepositoryPg } from '~/infra/repositories/pg/user.repository.pg'
 import * as dtos from '~/presentation/dtos/users'
 import type { JWTDecodedPayload } from '~/presentation/types'
 import { mapEntityErrorToStatusCode } from '~/presentation/utils/http-error-mapper'
