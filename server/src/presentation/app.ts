@@ -1,7 +1,10 @@
+import { createExpressEndpoints, initServer } from '@ts-rest/express'
 import express from 'express'
+import { documentsContract } from '~/presentation/contracts/documents'
+import { usersContract } from '~/presentation/contracts/users'
+import { documentsController } from '~/presentation/controllers/documents.controller'
+import { usersController } from '~/presentation/controllers/users.controller'
 import { openapiDocument, swaggerHtml } from '~/presentation/openapi'
-import { documentsRouter } from '~/presentation/routes/documents'
-import { usersRouter } from '~/presentation/routes/users'
 
 const app = express()
 
@@ -12,8 +15,8 @@ app.use((req, res, next) => {
 	next()
 })
 
-app.use('/users', usersRouter)
-app.use('/documents', documentsRouter)
+// app.use('/users', usersRouter)
+// app.use('/documents', documentsRouter)
 
 app.get('/', (_, res) => {
 	res.send(`<div><h1>DMS Server is Up</h1><a href='/docs'>View Docs</a></div>`)
@@ -23,6 +26,7 @@ app.get('/healthz', (_, res) => {
 	res.send('Server Is Healthy\n')
 })
 
+// OpenAPI Setup
 app.get('/docs', (_, res) => {
 	res.send(swaggerHtml)
 })
@@ -30,5 +34,14 @@ app.get('/docs', (_, res) => {
 app.get('/docs.json', (_, res) => {
 	res.json(openapiDocument)
 })
+
+// Registering with TS Rest
+const s = initServer()
+
+const usersRouter = s.router(usersContract, usersController)
+const documentsRouter = s.router(documentsContract, documentsController)
+
+createExpressEndpoints(usersContract, usersRouter, app)
+createExpressEndpoints(documentsContract, documentsRouter, app)
 
 export const expressApp = app

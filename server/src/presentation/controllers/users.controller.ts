@@ -1,71 +1,56 @@
-import { matchRes } from '@carbonteq/fp'
-import type { Request, Response } from 'express'
+import { AuthorizationService } from '~/app/services/authorization.service'
 import { UserService } from '~/app/services/user.service'
 import { UserRepositoryPg } from '~/infra/repositories/pg/user.repository.pg'
-import * as dtos from '~/presentation/dtos/users'
-import type { JWTDecodedPayload } from '~/presentation/types'
-import { mapEntityErrorToStatusCode } from '~/presentation/utils/http-error-mapper'
+import type { UsersContract } from '~/presentation/contracts/users'
+import { mapEntityErrorToStatusCode } from '~/presentation/utils/http-mapper'
+import { matchResultReturn } from '~/presentation/utils/result-match'
 
 const userService = new UserService(new UserRepositoryPg())
+export const usersController: UsersContract = {
+	createUser: async ({ body }) => {
+		const result = await userService.create(body)
+		return matchResultReturn(result, {
+			Ok: (user) => ({ status: 200, body: { userId: user.id, token: user.token } }),
+			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
+		})
+	},
 
-type AuthRequest = Request & { jwtPayload: JWTDecodedPayload }
+	updateUser: async ({ body, headers }) => {
+		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
+		if (!userId) return { status: 401, body: 'Invalid or missing token' }
+		const result = await userService.update({ id: userId, ...body })
+		return matchResultReturn(result, {
+			Ok: () => ({ status: 200, body: { updated: true } }),
+			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
+		})
+	},
 
-export const usersController = {
-	async getMe(req: Request, res: Response): Promise<void> {
-		const { userId } = (req as AuthRequest).jwtPayload
+	loginUser: async ({ body }) => {
+		const result = await userService.login(body)
+		return matchResultReturn(result, {
+			Ok: ({ token }) => ({ status: 200, body: { token } }),
+			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
+		})
+	},
+
+	getMyDetails: async ({ headers }) => {
+		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
+		if (!userId) return { status: 401, body: 'Invalid or missing token' }
 		const result = await userService.getById(userId)
-		matchRes(result, {
-			Ok: ({ id, username, createdAt, updatedAt }) => res.json({ userId: id, username, createdAt, updatedAt }),
-			Err: (err) => res.status(mapEntityErrorToStatusCode(err)).json({ error: err.message }),
+		return matchResultReturn(result, {
+			Ok: ({ id, username, createdAt, updatedAt }) => ({
+				status: 200,
+				body: { id, username, createdAt: createdAt.toISOString(), updatedAt: updatedAt.toISOString() },
+			}),
+			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
 		})
 	},
 
-	async getByUsername(req: Request, res: Response): Promise<void> {
-		const { data: query, success, error } = dtos.GetUserQuery.safeParse(req.query)
-		if (!success) {
-			res.status(422).json(error.message)
-			return
-		}
+	getUserByUsername: async ({ query }) => {
 		const result = await userService.getByUsername(query.username)
-		matchRes(result, {
-			Ok: ({ username, id }) => res.json({ userId: id, username }),
-			Err: (err) => res.status(mapEntityErrorToStatusCode(err)).json({ error: err.message }),
-		})
-	},
-
-	async create(req: Request, res: Response): Promise<void> {
-		const user = req.body
-		const result = await userService.create(user)
-		matchRes(result, {
-			Ok: ({ token }) => res.status(201).json({ token }),
-			Err: (err) => res.status(mapEntityErrorToStatusCode(err)).json({ error: err.message }),
-		})
-	},
-
-	async update(req: Request, res: Response): Promise<void> {
-		const { userId } = (req as AuthRequest).jwtPayload
-		const { data: user, success, error } = dtos.UserUpdate.safeParse(req.body)
-		if (!success) {
-			res.status(422).json(error.message)
-			return
-		}
-		const result = await userService.update({ id: userId, ...user })
-		matchRes(result, {
-			Ok: () => res.status(204).send(),
-			Err: (err) => res.status(mapEntityErrorToStatusCode(err)).json({ error: err.message }),
-		})
-	},
-
-	async login(req: Request, res: Response): Promise<void> {
-		const { data, success, error } = dtos.LoginUserRequest.safeParse(req.body)
-		if (!success) {
-			res.status(422).json(error.message)
-			return
-		}
-		const result = await userService.login(data)
-		matchRes(result, {
-			Ok: ({ token }) => res.json({ token }),
-			Err: (err) => res.status(mapEntityErrorToStatusCode(err)).json({ error: err.message }),
+		return matchResultReturn(result, {
+			Ok: ({ id, username }) => ({ status: 200, body: { userId: id, username } }),
+			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
 		})
 	},
 }

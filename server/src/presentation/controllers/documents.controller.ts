@@ -1,149 +1,116 @@
-import { matchRes } from '@carbonteq/fp'
-import type { Request, Response } from 'express'
 import mime from 'mime'
+import { AuthorizationService } from '~/app/services/authorization.service'
 import { DocumentService } from '~/app/services/document.service'
 import { AclRepositoryPg } from '~/infra/repositories/pg/acl.repository.pg'
 import { DocumentRepositoryPg } from '~/infra/repositories/pg/document.repository.pg'
-import * as dtos from '~/presentation/dtos/documents'
-import type { JWTDecodedPayload } from '~/presentation/types'
-import { mapEntityErrorToStatusCode } from '~/presentation/utils/http-error-mapper'
+import type { DocumentsContract } from '~/presentation/contracts/documents'
+import { mapEntityErrorToStatusCode } from '~/presentation/utils/http-mapper'
+import { matchResultReturn } from '~/presentation/utils/result-match'
 
 const documentService = new DocumentService(new DocumentRepositoryPg(), new AclRepositoryPg())
 
-type AuthRequest = Request & { jwtPayload: JWTDecodedPayload }
+export const documentsController: DocumentsContract = {
+	createDocument: async ({ body, headers }) => {
+		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
+		if (!userId) return { status: 401, body: 'Invalid or missing token' }
 
-export const documentsController = {
-	async getById(req: Request, res: Response) {
-		const { userId } = (req as AuthRequest).jwtPayload
-		const { data, success, error } = dtos.GetDocumentByIdParams.safeParse(req.params)
-		if (!success) {
-			res.status(422).json(error.message)
-			return
-		}
-		const documentId = data.id
-		const result = await documentService.getById(userId, documentId)
-		matchRes(result, {
-			Ok: (doc) => res.json(doc),
-			Err: (err) => res.status(mapEntityErrorToStatusCode(err)).json({ error: err.message }),
+		const result = await documentService.create(userId, body)
+		return matchResultReturn(result, {
+			Ok: (doc) => ({ status: 200, body: { documentId: doc.id } }),
+			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
 		})
 	},
 
-	async search(req: Request, res: Response) {
-		const { userId } = (req as AuthRequest).jwtPayload
-		const { data: query, success, error } = dtos.SearchDocumentsQuery.safeParse(req.query)
-		if (!success) {
-			res.status(422).json(error.message)
-			return
-		}
+	patchDocument: async ({ body, params, headers }) => {
+		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
+		if (!userId) return { status: 401, body: 'Invalid or missing token' }
+
+		const document = { ...body, id: params.id }
+		const result = await documentService.update(userId, document)
+		return matchResultReturn(result, {
+			Ok: () => ({ status: 200, body: { updated: true } }),
+			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
+		})
+	},
+
+	getDocumentById: async ({ params, headers }) => {
+		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
+		if (!userId) return { status: 401, body: 'Invalid or missing token' }
+
+		const result = await documentService.getById(userId, params.id)
+		return matchResultReturn(result, {
+			Ok: (doc) => ({
+				status: 200,
+				body: { ...doc, createdAt: doc.createdAt.toISOString(), updatedAt: doc.updatedAt.toISOString() },
+			}),
+			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
+		})
+	},
+
+	searchDocuments: async ({ query, headers }) => {
+		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
+		if (!userId) return { status: 401, body: 'Invalid or missing token' }
+
 		const result = await documentService.search(userId, {
 			page: query.page,
 			limit: query.limit,
 			sort: query.sort,
 			filters: { ...query },
 		})
-		matchRes(result, {
-			Ok: (doc) => res.json(doc),
-			Err: (err) => res.status(mapEntityErrorToStatusCode(err)).json({ error: err.message }),
+		return matchResultReturn(result, {
+			Ok: (docs) => ({ status: 200, body: docs }),
+			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
 		})
 	},
 
-	async create(req: Request, res: Response) {
-		const { userId } = (req as AuthRequest).jwtPayload
-		const { data, success, error } = dtos.DocumentCreate.safeParse(req.body)
-		if (!success) {
-			res.status(422).json(error.message)
-			return
-		}
-		const result = await documentService.create(userId, data)
-		matchRes(result, {
-			Ok: (doc) => res.status(201).json(doc),
-			Err: (err) => res.status(mapEntityErrorToStatusCode(err)).json({ error: err.message }),
-		})
-	},
-
-	async update(req: Request, res: Response) {
-		const document = req.body
-		const { userId } = (req as AuthRequest).jwtPayload
-		const result = await documentService.update(userId, document)
-		matchRes(result, {
-			Ok: () => res.status(204).send(),
-			Err: (err) => res.status(mapEntityErrorToStatusCode(err)).json({ error: err.message }),
-		})
-	},
-
-	async getAccessList(req: Request, res: Response) {
-		const { data: params, success, error } = dtos.GetDocumentAccessListParams.safeParse(req.params)
-		if (!success) {
-			res.status(422).json(error.message)
-			return
-		}
+	getDocumentAccessList: async ({ params }) => {
 		const result = await documentService.getAclEntries(params.documentId)
-		matchRes(result, {
-			Ok: (entries) => res.status(200).json({ access: entries }),
-			Err: (err) => res.status(mapEntityErrorToStatusCode(err)).json({ error: err.message }),
+		return matchResultReturn(result, {
+			Ok: (access) => ({ status: 200, body: { access } }),
+			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
 		})
 	},
 
-	async patchAccess(req: Request, res: Response) {
-		const {
-			data: params,
-			success: paramSuccess,
-			error: paramError,
-		} = dtos.PatchDocumentAccessParams.safeParse(req.params)
-		if (!paramSuccess) {
-			res.status(422).json(paramError.message)
-			return
-		}
-		const { data: body, success: bodySuccess, error: bodyError } = dtos.PatchDocumentAccessRequest.safeParse(req.body)
-		if (!bodySuccess) {
-			res.status(422).json(bodyError.message)
-			return
-		}
+	patchDocumentAccess: async ({ params, body, headers }) => {
+		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
+		if (!userId) return { status: 401, body: 'Invalid or missing token' }
+
 		const action = body.remove ? ({ remove: true } as const) : ({ remove: false, role: body.role } as const)
 		const result = await documentService.updateAcl(body.targetUserId, params.documentId, action)
-		matchRes(result, {
-			Ok: () => res.status(204).send(),
-			Err: (err) => res.status(mapEntityErrorToStatusCode(err)).json({ error: err.message }),
+		return matchResultReturn(result, {
+			Ok: () => ({ status: 200, body: { success: true } }),
+			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
 		})
 	},
 
-	async createLink(req: Request, res: Response): Promise<void> {
-		const { userId } = (req as AuthRequest).jwtPayload
-		const { data: params, success, error } = dtos.CreateDocumentLinkParams.safeParse(req.params)
-		if (!success) {
-			res.status(422).json(error.message)
-			return
-		}
+	createDocumentLink: async ({ params, headers }) => {
+		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
+		if (!userId) return { status: 401, body: 'Invalid or missing token' }
+
 		const result = await documentService.createLink(userId, {
-			baseUrl: `${req.host}/documents/download`,
+			baseUrl: `${headers.host}/documents/signed-url/download`,
 			documentId: params.documentId,
 			expiresAt: Date.now() + 2 * 60 * 60 * 1000,
 			method: 'get',
 		})
-		matchRes(result, {
-			Ok: (link) => res.status(201).json({ link }),
-			Err: (err) => res.status(mapEntityErrorToStatusCode(err)).json({ error: err.message }),
+		return matchResultReturn(result, {
+			Ok: (link) => ({ status: 200, body: { link } }),
+			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
 		})
 	},
 
-	async downloadByLink(req: Request, res: Response): Promise<void> {
-		const { data: query, success, error } = dtos.DownloadDocumentByLinkQuery.safeParse(req.query)
-		if (!success) {
-			res.status(422).json(error.message)
-			return
-		}
+	downloadDocumentByLink: async ({ query }) => {
 		const result = await documentService.getDocumentByLink(query)
-		matchRes(result, {
+		return matchResultReturn(result, {
 			Ok: (doc) => {
 				const fileExtension = mime.getExtension(doc.fileType) ?? 'bin'
 				const headers = {
 					'Content-Disposition': `attachment; filename="${doc.title}.${fileExtension}"`,
 					'Content-Type': doc.fileType ?? 'text/plain',
 				}
-				res.set(headers)
-				res.send(doc.content)
+				return { status: 200, body: doc.content, headers }
 			},
-			Err: (err) => res.status(mapEntityErrorToStatusCode(err)).json({ error: err.message }),
+			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
 		})
 	},
 }

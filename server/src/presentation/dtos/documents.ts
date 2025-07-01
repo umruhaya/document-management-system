@@ -89,8 +89,8 @@ export const SearchDocumentsResponse = z.object({
 			size: z.number(),
 			content: z.string(),
 			tags: z.array(z.string()),
-			createdAt: z.string(),
-			updatedAt: z.string(),
+			createdAt: z.date(),
+			updatedAt: z.date(),
 		}),
 	),
 })
@@ -103,7 +103,7 @@ export const GetDocumentAccessListResponse = z.object({
 	access: z.array(
 		z.object({
 			userId: z.string(),
-			username: z.string(),
+			documentId: z.string(),
 			role: z.string(),
 		}),
 	),

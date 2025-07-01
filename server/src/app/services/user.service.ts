@@ -1,10 +1,10 @@
-import { matchRes, Result } from '@carbonteq/fp'
+import { Result } from '@carbonteq/fp'
 import argon2 from 'argon2'
 import { ulid } from 'ulidx'
+import { AuthorizationService } from '~/app/services/authorization.service'
 import { AuthenticationError, type EntityError } from '~/domain/errors'
 import type { UserEntity } from '~/domain/user/user.entity'
 import type { UserRepository } from '~/domain/user/user.repository'
-import { sign } from '~/presentation/middlewares/jwt'
 
 export class UserService {
 	constructor(private readonly userRepo: UserRepository) {}
@@ -25,7 +25,7 @@ export class UserService {
 		const userId = ulid()
 		const hashedPassword = await argon2.hash(password)
 		const createUserRes = await this.userRepo.create({ id: userId, username, hashedPassword })
-		return createUserRes.map((user) => ({ ...user, token: sign({ userId, username }) }))
+		return createUserRes.map((user) => ({ ...user, token: AuthorizationService.signPayload({ userId, username }) }))
 	}
 
 	async update(user: { id: string; username?: string; password?: string }): Promise<Result<true, EntityError>> {
@@ -39,7 +39,7 @@ export class UserService {
 			.flatMap(async (userFromDb) => {
 				const matched = await argon2.verify(userFromDb.hashedPassword, user.password)
 				return matched
-					? Result.Ok({ token: sign({ userId: userFromDb.id, username: user.username }) })
+					? Result.Ok({ token: AuthorizationService.signPayload({ userId: userFromDb.id, username: user.username }) })
 					: Result.Err(new AuthenticationError('user', '', 'username or password is incorrect'))
 			})
 			.toPromise()

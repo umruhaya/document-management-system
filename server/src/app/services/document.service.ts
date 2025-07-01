@@ -93,7 +93,7 @@ export class DocumentService {
 				result.map((_entry) => DocumentPresignedUrlService.presignUrl(options))
 	}
 
-	async getDocumentByLink(input: VerificationInput) {
+	async getDocumentByLink(input: VerificationInput): Promise<Result<DocumentEntity, EntityError>> {
 		const verified = DocumentPresignedUrlService.verifySignature(input)
 		return verified
 			? this.documentRepo.getById(input.documentId)

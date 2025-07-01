@@ -11,6 +11,10 @@ const mainContract = c.router({
 	documents: documentsContract,
 })
 
+const hasSecurity = (metadata: unknown) => {
+	return !!metadata && typeof metadata === 'object' && 'jwt' in metadata && metadata.jwt === true
+}
+
 export const openapiDocument = generateOpenApi(
 	mainContract,
 	{
@@ -33,6 +37,10 @@ export const openapiDocument = generateOpenApi(
 	},
 	{
 		setOperationId: true,
+		operationMapper: (operation, appRoute) => ({
+			...operation,
+			security: hasSecurity(appRoute.metadata) ? [{ jwt: [] }] : undefined,
+		}),
 	},
 )
 
