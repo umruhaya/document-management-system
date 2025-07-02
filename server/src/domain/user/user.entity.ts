@@ -1,6 +1,6 @@
 import { Result } from '@carbonteq/fp'
 import { BaseEntity, type IEntity } from '~/domain/base.entity'
-import { EntityValidationError } from '~/domain/errors'
+import { UserValidationError } from '~/domain/errors'
 
 type UserSpecificField = { username: string; hashedPassword: string }
 
@@ -22,7 +22,7 @@ export class UserEntity extends BaseEntity implements IEntity {
 
 	static validateUsername(user: UserEntity) {
 		return user.username.includes(' ')
-			? Result.Err(new EntityValidationError('User', user.username, 'Username cannot contain spaces'))
+			? Result.Err(new UserValidationError({ username: user.username }, 'Username cannot contain spaces'))
 			: Result.Ok(user)
 	}
 
