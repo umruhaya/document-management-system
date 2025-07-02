@@ -1,11 +1,11 @@
+import { container } from 'tsyringe'
 import { AuthorizationService } from '~/app/services/authorization.service'
 import { UserService } from '~/app/services/user.service'
-import { UserRepositoryPg } from '~/infra/repositories/pg/user.repository.pg'
 import type { UsersContract } from '~/presentation/contracts/users'
 import { mapEntityErrorToStatusCode } from '~/presentation/utils/http-mapper'
 import { matchResultReturn } from '~/presentation/utils/result-match'
 
-const userService = new UserService(new UserRepositoryPg())
+const userService = container.resolve(UserService)
 export const usersController: UsersContract = {
 	createUser: async ({ body }) => {
 		const result = await userService.create(body)

@@ -1,4 +1,5 @@
 import mime from 'mime'
+import { container } from 'tsyringe'
 import { AuthorizationService } from '~/app/services/authorization.service'
 import { DocumentService } from '~/app/services/document.service'
 import { AclRepositoryPg } from '~/infra/repositories/pg/acl.repository.pg'
@@ -7,7 +8,7 @@ import type { DocumentsContract } from '~/presentation/contracts/documents'
 import { mapEntityErrorToStatusCode } from '~/presentation/utils/http-mapper'
 import { matchResultReturn } from '~/presentation/utils/result-match'
 
-const documentService = new DocumentService(new DocumentRepositoryPg(), new AclRepositoryPg())
+const documentService = container.resolve(DocumentService)
 
 export const documentsController: DocumentsContract = {
 	createDocument: async ({ body, headers }) => {

@@ -1,11 +1,13 @@
 import { Result } from '@carbonteq/fp'
 import { and, eq } from 'drizzle-orm'
+import { injectable } from 'tsyringe'
 import type { AccessControlListEntity, DocumentRole } from '~/domain/access-control-entry/access-control-entry.entity'
 import { AclRepository } from '~/domain/access-control-entry/acl.repository'
 import { type EntityError, EntityNotFoundError, EntityUnknownError } from '~/domain/errors'
 import { db, table } from '~/infra/database/client'
 import { TryCatchAsync } from '~/utils/trycatch'
 
+@injectable()
 export class AclRepositoryPg extends AclRepository {
 	getByDocumentId(documentId: string): Promise<Result<AccessControlListEntity[], EntityError>> {
 		return TryCatchAsync({

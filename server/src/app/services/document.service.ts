@@ -1,4 +1,5 @@
 import { Result } from '@carbonteq/fp'
+import { inject, injectable } from 'tsyringe'
 import { ulid } from 'ulidx'
 import {
 	DocumentPresignedUrlService,
@@ -13,10 +14,11 @@ import { type EntityError, EntityNotFoundError, EntityValidationError } from '~/
 import type { DocumentCreateType, DocumentPatchParamsType, DocumentPatchType } from '~/presentation/dtos/documents'
 import type { PaginationOptions } from '~/presentation/types'
 
+@injectable()
 export class DocumentService {
 	constructor(
-		private readonly documentRepo: DocumentRepository,
-		private readonly aclRepo: AclRepository,
+		@inject('DocumentRepository') private readonly documentRepo: DocumentRepository,
+		@inject('AclRepository') private readonly aclRepo: AclRepository,
 	) {}
 
 	search(

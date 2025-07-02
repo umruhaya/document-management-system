@@ -1,6 +1,7 @@
 import { Result } from '@carbonteq/fp'
 import { and, arrayContains, countDistinct, eq, ilike, sql } from 'drizzle-orm'
 import { PostgresError } from 'pg-error-enum'
+import { injectable } from 'tsyringe'
 import { DocumentEntity } from '~/domain/document/document.entity'
 import { DocumentRepository } from '~/domain/document/document.repository'
 import { EntityAlreadyExistsError, type EntityError, EntityNotFoundError, EntityUnknownError } from '~/domain/errors'
@@ -8,6 +9,7 @@ import { DatabaseError, db, table } from '~/infra/database/client'
 import type { PaginatedCollection, PaginationOptions } from '~/presentation/types'
 import { TryCatchAsync } from '~/utils/trycatch'
 
+@injectable()
 export class DocumentRepositoryPg extends DocumentRepository {
 	search(
 		userId: string,

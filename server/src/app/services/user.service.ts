@@ -1,13 +1,15 @@
 import { Result } from '@carbonteq/fp'
 import argon2 from 'argon2'
+import { inject, injectable } from 'tsyringe'
 import { ulid } from 'ulidx'
 import { AuthorizationService } from '~/app/services/authorization.service'
 import { AuthenticationError, type EntityError } from '~/domain/errors'
 import type { UserEntity } from '~/domain/user/user.entity'
 import type { UserRepository } from '~/domain/user/user.repository'
 
+@injectable()
 export class UserService {
-	constructor(private readonly userRepo: UserRepository) {}
+	constructor(@inject('UserRepository') private readonly userRepo: UserRepository) {}
 
 	async getById(userId: string): Promise<Result<UserEntity, EntityError>> {
 		return this.userRepo.getById(userId)
