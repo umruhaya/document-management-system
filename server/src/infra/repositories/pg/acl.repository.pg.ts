@@ -3,13 +3,13 @@ import { and, eq } from 'drizzle-orm'
 import { injectable } from 'tsyringe'
 import type { AccessControlListEntity, DocumentRole } from '~/domain/access-control-entry/access-control-entry.entity'
 import { AclRepository } from '~/domain/access-control-entry/acl.repository'
-import { type EntityError, EntityNotFoundError, EntityUnknownError } from '~/domain/errors'
+import { ACLEntryNotFoundError, UnknownError } from '~/domain/errors'
 import { db, table } from '~/infra/database/client'
 import { TryCatchAsync } from '~/utils/trycatch'
 
 @injectable()
 export class AclRepositoryPg extends AclRepository {
-	getByDocumentId(documentId: string): Promise<Result<AccessControlListEntity[], EntityError>> {
+	getByDocumentId(documentId: string): Promise<Result<AccessControlListEntity[], Error>> {
 		return TryCatchAsync({
 			fn: async () => {
 				const entries = await db
@@ -23,8 +23,7 @@ export class AclRepositoryPg extends AclRepository {
 				console.debug({ documentId })
 				console.debug(error)
 				return Result.Err(
-					new EntityUnknownError(
-						'AclRepository',
+					new UnknownError(
 						`ACL fetch failed for documentId: ${documentId}, Details: ${error}`,
 						'Failed acl.getByDocumentId',
 					),
@@ -33,7 +32,7 @@ export class AclRepositoryPg extends AclRepository {
 		})
 	}
 
-	getAcl(userId: string, documentId: string): Promise<Result<AccessControlListEntity, EntityError>> {
+	getAcl(userId: string, documentId: string): Promise<Result<AccessControlListEntity, Error>> {
 		return TryCatchAsync({
 			fn: async () => {
 				const aclEntry = await db
@@ -42,20 +41,16 @@ export class AclRepositoryPg extends AclRepository {
 					.where(and(eq(table.documentAccess.userId, userId), eq(table.documentAccess.documentId, documentId)))
 					.execute()
 					.then((r) => r.at(0))
-				return aclEntry ? Result.Ok(aclEntry) : Result.Err(new EntityNotFoundError('ACL', { userId, documentId }))
+				return aclEntry ? Result.Ok(aclEntry) : Result.Err(new ACLEntryNotFoundError({ userId, documentId }))
 			},
 			onError: (error) =>
 				Result.Err(
-					new EntityUnknownError(
-						'AclRepository',
-						`ACL set failed for documentId: ${documentId}, Details: ${error}`,
-						'Failed acl.setAcl',
-					),
+					new UnknownError(`ACL set failed for documentId: ${documentId}, Details: ${error}`, 'Failed acl.setAcl'),
 				),
 		})
 	}
 
-	setAcl(userId: string, documentId: string, role: DocumentRole): Promise<Result<true, EntityError>> {
+	setAcl(userId: string, documentId: string, role: DocumentRole): Promise<Result<true, Error>> {
 		return TryCatchAsync({
 			fn: async () => {
 				const entry = await db
@@ -76,16 +71,12 @@ export class AclRepositoryPg extends AclRepository {
 			},
 			onError: (error) =>
 				Result.Err(
-					new EntityUnknownError(
-						'AclRepository',
-						`ACL set failed for documentId: ${documentId}, Details: ${error}`,
-						'Failed acl.setAcl',
-					),
+					new UnknownError(`ACL set failed for documentId: ${documentId}, Details: ${error}`, 'Failed acl.setAcl'),
 				),
 		})
 	}
 
-	revokeAcl(userId: string, documentId: string): Promise<Result<true, EntityError>> {
+	revokeAcl(userId: string, documentId: string): Promise<Result<true, Error>> {
 		return TryCatchAsync({
 			fn: async () => {
 				const _entry = await db
@@ -98,11 +89,7 @@ export class AclRepositoryPg extends AclRepository {
 			},
 			onError: (error) =>
 				Result.Err(
-					new EntityUnknownError(
-						'AclRepository',
-						`ACL set failed for documentId: ${documentId}, Details: ${error}`,
-						'Failed acl.setAcl',
-					),
+					new UnknownError(`ACL set failed for documentId: ${documentId}, Details: ${error}`, 'Failed acl.setAcl'),
 				),
 		})
 	}

@@ -1,7 +1,4 @@
-import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi'
 import { z } from 'zod'
-
-extendZodWithOpenApi(z)
 
 // Allowed file types for documents
 export const AllowedFileTypes = [

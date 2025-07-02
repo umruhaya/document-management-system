@@ -1,7 +1,4 @@
-import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi'
 import { z } from 'zod'
-
-extendZodWithOpenApi(z)
 
 // Get user by username
 export const GetUserQuery = z.object({ username: z.string() })

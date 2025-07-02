@@ -4,7 +4,7 @@ import { PostgresError } from 'pg-error-enum'
 import { injectable } from 'tsyringe'
 import { DocumentEntity } from '~/domain/document/document.entity'
 import { DocumentRepository } from '~/domain/document/document.repository'
-import { EntityAlreadyExistsError, type EntityError, EntityNotFoundError, EntityUnknownError } from '~/domain/errors'
+import { DocumentAlreadyExistsError, DocumentNotFoundError, UnknownError } from '~/domain/errors'
 import { DatabaseError, db, table } from '~/infra/database/client'
 import type { PaginatedCollection, PaginationOptions } from '~/presentation/types'
 import { TryCatchAsync } from '~/utils/trycatch'
@@ -22,7 +22,7 @@ export class DocumentRepositoryPg extends DocumentRepository {
 			author?: string
 			exlcudeContent?: 'true'
 		}>,
-	): Promise<Result<PaginatedCollection<DocumentEntity>, EntityError>> {
+	): Promise<Result<PaginatedCollection<DocumentEntity>, Error>> {
 		return TryCatchAsync({
 			fn: async () => {
 				const { page, limit, filters } = option
@@ -74,12 +74,11 @@ export class DocumentRepositoryPg extends DocumentRepository {
 					totalPages: Math.ceil(totalItems / limit),
 				})
 			},
-			onError: (error) =>
-				Result.Err(new EntityUnknownError('DocumentRepository', `Error: ${error}`, 'Failed document.search')),
+			onError: (error) => Result.Err(new UnknownError(`Error: ${error}`, 'Failed document.search')),
 		})
 	}
 
-	getById(documentId: string): Promise<Result<DocumentEntity, EntityError>> {
+	getById(documentId: string): Promise<Result<DocumentEntity, Error>> {
 		return TryCatchAsync({
 			fn: async () => {
 				const document = await db
@@ -94,14 +93,13 @@ export class DocumentRepositoryPg extends DocumentRepository {
 							createdAt: new Date(document.createdAt),
 							updatedAt: new Date(document.updatedAt),
 						})
-					: Result.Err(new EntityNotFoundError('document', `No Document Found With ID: ${documentId}`))
+					: Result.Err(new DocumentNotFoundError({ documentId }))
 			},
-			onError: (error) =>
-				Result.Err(new EntityUnknownError('DocumentRepository', `Error: ${error}`, 'Failed document.get')),
+			onError: (error) => Result.Err(new UnknownError(`Error: ${error}`, 'Failed document.get')),
 		})
 	}
 
-	create(userId: string, document: DocumentEntity): Promise<Result<DocumentEntity, EntityError>> {
+	create(userId: string, document: DocumentEntity): Promise<Result<DocumentEntity, Error>> {
 		return TryCatchAsync({
 			fn: async () => {
 				await db.transaction(async (tx) => {
@@ -118,9 +116,8 @@ export class DocumentRepositoryPg extends DocumentRepository {
 			onError: (error) =>
 				Result.Err(
 					error instanceof DatabaseError && error.code === PostgresError.UNIQUE_VIOLATION
-						? new EntityAlreadyExistsError('DocumentRepository', `Document Already Exists With ID: ${document.id}`)
-						: new EntityUnknownError(
-								'DocumentRepository',
+						? new DocumentAlreadyExistsError({ id: document.id })
+						: new UnknownError(
 								`Document Insert Failed With values ${JSON.stringify(document)}`,
 								'Failed document.create',
 							),
@@ -130,7 +127,7 @@ export class DocumentRepositoryPg extends DocumentRepository {
 
 	update(
 		document: { id: string } & Partial<Omit<DocumentEntity, 'id' | 'createdAt' | 'updatedAt'>>,
-	): Promise<Result<true, EntityError>> {
+	): Promise<Result<true, Error>> {
 		return TryCatchAsync({
 			fn: async () => {
 				const updatedDocument = await db
@@ -141,14 +138,13 @@ export class DocumentRepositoryPg extends DocumentRepository {
 					.execute()
 					.then((r) => r.at(0))
 				if (updatedDocument === undefined) {
-					return Result.Err(new EntityNotFoundError('DocumentRepository', `No Document found With ID: ${document.id}`))
+					return Result.Err(new DocumentNotFoundError({ id: document.id }))
 				}
 				return Result.Ok(true)
 			},
 			onError: (error) =>
 				Result.Err(
-					new EntityUnknownError(
-						'DocumentRepository',
+					new UnknownError(
 						`Document Update Failed With values ${JSON.stringify(document)}, Details: ${error}`,
 						'Failed document.update',
 					),

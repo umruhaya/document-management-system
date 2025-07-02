@@ -1,20 +1,21 @@
 import type { Result } from '@carbonteq/fp'
 import type { HTTPStatusCode } from '@ts-rest/core'
 import {
+	AlreadyExistsError,
 	AuthenticationError,
-	EntityAlreadyExistsError,
-	type EntityError,
-	EntityNotFoundError,
-	EntityUnknownError,
-	EntityValidationError,
+	DomainError,
+	NotFoundError,
+	UnknownError,
+	ValidationError,
 } from '~/domain/errors'
 
-export function mapEntityErrorToStatusCode(error: Error) {
-	if (error instanceof EntityValidationError) return 400
+export function mapErrorToStatusCode(error: Error) {
+	if (error instanceof ValidationError) return 400
 	if (error instanceof AuthenticationError) return 401
-	if (error instanceof EntityNotFoundError) return 404
-	if (error instanceof EntityAlreadyExistsError) return 409
-	if (error instanceof EntityUnknownError) return 500
+	if (error instanceof NotFoundError) return 404
+	if (error instanceof AlreadyExistsError) return 409
+	if (error instanceof UnknownError) return 500
+	if (error instanceof DomainError) return 500
 	return 500
 }
 
@@ -38,5 +39,5 @@ export const mapResultToHttpResponse: <T, S extends HTTPStatusCode, E extends Er
 		return { status: successCode, body, headers }
 	}
 	const error = result.unwrapErr()
-	return { status: mapEntityErrorToStatusCode(error), body: error.message, headers }
+	return { status: mapErrorToStatusCode(error), body: error.message, headers }
 }

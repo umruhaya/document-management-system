@@ -1,6 +1,5 @@
 import type { Result } from '@carbonteq/fp'
 import type { DocumentEntity } from '~/domain/document/document.entity'
-import type { EntityError } from '~/domain/errors'
 import type { PaginatedCollection, PaginationOptions } from '~/presentation/types'
 
 export abstract class DocumentRepository {
@@ -15,13 +14,13 @@ export abstract class DocumentRepository {
 			author?: string
 			exlcudeContent?: 'true'
 		}>,
-	): Promise<Result<PaginatedCollection<DocumentEntity>, EntityError>>
-	abstract getById(documentId: string): Promise<Result<DocumentEntity, EntityError>>
+	): Promise<Result<PaginatedCollection<DocumentEntity>, Error>>
+	abstract getById(documentId: string): Promise<Result<DocumentEntity, Error>>
 	abstract create(
 		userId: string,
 		document: Omit<DocumentEntity, 'createdAt' | 'updatedAt'>,
-	): Promise<Result<DocumentEntity, EntityError>>
+	): Promise<Result<DocumentEntity, Error>>
 	abstract update(
 		document: { id: string } & Partial<Omit<DocumentEntity, 'createdAt' | 'updatedAt'>>,
-	): Promise<Result<true, EntityError>>
+	): Promise<Result<true, Error>>
 }

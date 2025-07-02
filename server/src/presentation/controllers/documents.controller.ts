@@ -3,7 +3,7 @@ import { container } from 'tsyringe'
 import { AuthorizationService } from '~/app/services/authorization.service'
 import { DocumentService } from '~/app/services/document.service'
 import type { DocumentsContract } from '~/presentation/contracts/documents'
-import { mapEntityErrorToStatusCode } from '~/presentation/utils/http-mapper'
+import { mapErrorToStatusCode } from '~/presentation/utils/http-mapper'
 import { matchResultReturn } from '~/presentation/utils/result-match'
 
 const documentService = container.resolve(DocumentService)
@@ -16,7 +16,7 @@ export const documentsController: DocumentsContract = {
 		const result = await documentService.create(userId, body)
 		return matchResultReturn(result, {
 			Ok: (doc) => ({ status: 200, body: { documentId: doc.id } }),
-			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
+			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),
 		})
 	},
 
@@ -28,7 +28,7 @@ export const documentsController: DocumentsContract = {
 		const result = await documentService.update(userId, document)
 		return matchResultReturn(result, {
 			Ok: () => ({ status: 200, body: { updated: true } }),
-			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
+			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),
 		})
 	},
 
@@ -42,7 +42,7 @@ export const documentsController: DocumentsContract = {
 				status: 200,
 				body: { ...doc, createdAt: doc.createdAt.toISOString(), updatedAt: doc.updatedAt.toISOString() },
 			}),
-			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
+			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),
 		})
 	},
 
@@ -58,7 +58,7 @@ export const documentsController: DocumentsContract = {
 		})
 		return matchResultReturn(result, {
 			Ok: (docs) => ({ status: 200, body: docs }),
-			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
+			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),
 		})
 	},
 
@@ -66,7 +66,7 @@ export const documentsController: DocumentsContract = {
 		const result = await documentService.getAclEntries(params.documentId)
 		return matchResultReturn(result, {
 			Ok: (access) => ({ status: 200, body: { access } }),
-			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
+			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),
 		})
 	},
 
@@ -78,7 +78,7 @@ export const documentsController: DocumentsContract = {
 		const result = await documentService.updateAcl(body.targetUserId, params.documentId, action)
 		return matchResultReturn(result, {
 			Ok: () => ({ status: 200, body: { success: true } }),
-			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
+			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),
 		})
 	},
 
@@ -94,7 +94,7 @@ export const documentsController: DocumentsContract = {
 		})
 		return matchResultReturn(result, {
 			Ok: (link) => ({ status: 200, body: { link } }),
-			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
+			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),
 		})
 	},
 
@@ -109,7 +109,7 @@ export const documentsController: DocumentsContract = {
 				}
 				return { status: 200, body: doc.content, headers }
 			},
-			Err: (err) => ({ status: mapEntityErrorToStatusCode(err), body: err.message }),
+			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),
 		})
 	},
 }
