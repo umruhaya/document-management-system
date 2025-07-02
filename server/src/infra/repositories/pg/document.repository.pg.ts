@@ -2,7 +2,7 @@ import { Result } from '@carbonteq/fp'
 import { and, arrayContains, countDistinct, eq, ilike, sql } from 'drizzle-orm'
 import { PostgresError } from 'pg-error-enum'
 import { injectable } from 'tsyringe'
-import { DocumentEntity } from '~/domain/document/document.entity'
+import { DocumentEntity, type SerializedDocument } from '~/domain/document/document.entity'
 import { DocumentRepository } from '~/domain/document/document.repository'
 import { DocumentAlreadyExistsError, DocumentNotFoundError, UnknownError } from '~/domain/errors'
 import { DatabaseError, db, table } from '~/infra/database/client'
@@ -27,16 +27,16 @@ export class DocumentRepositoryPg extends DocumentRepository {
 			fn: async () => {
 				const { page, limit, filters } = option
 				const filtersQuery = and(
-					eq(table.documentAccess.userId, userId), // user has access to the document
+					eq(table.documentAccess.userId, userId), // user has access
 					filters.title ? ilike(table.documents.title, `%${filters.title}%`) : undefined,
-					filters.tags && filters.tags.length !== 0 ? arrayContains(table.documents.tags, filters.tags) : undefined,
+					filters.tags?.length ? arrayContains(table.documents.tags, filters.tags) : undefined,
 					filters.fileType ? eq(table.documents.fileType, filters.fileType) : undefined,
 				)
-				const [totalItems, documents] = await Promise.all([
+
+				// fetch count and raw rows
+				const [totalItems, rawRows] = await Promise.all([
 					db
-						.select({
-							count: countDistinct(table.documents.id),
-						})
+						.select({ count: countDistinct(table.documents.id) })
 						.from(table.documents)
 						.innerJoin(table.documentAccess, eq(table.documents.id, table.documentAccess.documentId))
 						.where(filtersQuery)
@@ -61,13 +61,33 @@ export class DocumentRepositoryPg extends DocumentRepository {
 						.where(filtersQuery)
 						.limit(limit)
 						.offset(limit * (page - 1))
-						.execute()
-						.then((docs) =>
-							docs.map((d) => ({ ...d, createdAt: new Date(d.createdAt), updatedAt: new Date(d.updatedAt) })),
-						),
+						.execute(),
 				])
+
+				// map raw rows to domain entities
+				const items: DocumentEntity[] = []
+				for (const row of rawRows) {
+					const serialized = {
+						id: row.id,
+						createdAt: new Date(row.createdAt).toISOString(),
+						updatedAt: new Date(row.updatedAt).toISOString(),
+						title: row.title,
+						description: row.description,
+						fileType: row.fileType,
+						version: row.version,
+						size: row.size,
+						content: row.content,
+						tags: row.tags,
+					}
+					const entRes = DocumentEntity.create(serialized)
+					if (entRes.isErr()) {
+						return Result.Err(entRes.unwrapErr())
+					}
+					items.push(entRes.unwrap())
+				}
+
 				return Result.Ok({
-					items: documents,
+					items,
 					perPage: limit,
 					currentPage: page,
 					totalItems,
@@ -90,8 +110,8 @@ export class DocumentRepositoryPg extends DocumentRepository {
 				return document
 					? DocumentEntity.create({
 							...document,
-							createdAt: new Date(document.createdAt),
-							updatedAt: new Date(document.updatedAt),
+							createdAt: new Date(document.createdAt).toISOString(),
+							updatedAt: new Date(document.updatedAt).toISOString(),
 						})
 					: Result.Err(new DocumentNotFoundError({ documentId }))
 			},
@@ -99,16 +119,29 @@ export class DocumentRepositoryPg extends DocumentRepository {
 		})
 	}
 
-	create(userId: string, document: DocumentEntity): Promise<Result<DocumentEntity, Error>> {
+	create(
+		userId: string,
+		docInput: Omit<SerializedDocument, 'createdAt' | 'updatedAt'>,
+	): Promise<Result<DocumentEntity, Error>> {
 		return TryCatchAsync({
 			fn: async () => {
+				// build entity via factory
+				const now = new Date().toISOString()
+				const serialized = {
+					...docInput,
+					createdAt: now,
+					updatedAt: now,
+				}
+				const entRes = DocumentEntity.create(serialized)
+				if (entRes.isErr()) {
+					return Result.Err(entRes.unwrapErr())
+				}
+				const document = entRes.unwrap()
 				await db.transaction(async (tx) => {
 					await tx.insert(table.documents).values({
-						...document,
-						createdAt: document.createdAt.toISOString(),
-						updatedAt: document.updatedAt.toISOString(),
+						...document.serialize(),
 					})
-					// create ACL entry for user to access the document an owner
+					// create ACL entry so user has owner access
 					await tx.insert(table.documentAccess).values({ userId, documentId: document.id, role: 'owner' })
 				})
 				return Result.Ok(document)
@@ -116,9 +149,9 @@ export class DocumentRepositoryPg extends DocumentRepository {
 			onError: (error) =>
 				Result.Err(
 					error instanceof DatabaseError && error.code === PostgresError.UNIQUE_VIOLATION
-						? new DocumentAlreadyExistsError({ id: document.id })
+						? new DocumentAlreadyExistsError({ id: docInput.id })
 						: new UnknownError(
-								`Document Insert Failed With values ${JSON.stringify(document)}`,
+								`Document Insert Failed With values ${JSON.stringify(docInput)}`,
 								'Failed document.create',
 							),
 				),

@@ -13,22 +13,22 @@ export class AuthenticationError extends Error {
 // To be Extended
 export abstract class DomainError extends Error {
 	// Prevent direct instantiation
-	protected constructor(..._args: unknown[]) {
-		super()
+	protected constructor(message: string, options?: ErrorOptions) {
+		super(message, options)
 	}
 }
 export abstract class ValidationError extends Error {
-	protected constructor(..._args: unknown[]) {
-		super()
+	protected constructor(message: string, options?: ErrorOptions) {
+		super(message, options)
 	}
 }
 export abstract class AlreadyExistsError extends Error {
-	protected constructor(..._args: unknown[]) {
-		super()
+	protected constructor(message: string, options?: ErrorOptions) {
+		super(message, options)
 	}
 }
 export abstract class NotFoundError extends Error {
-	protected constructor(..._args: unknown[]) {
-		super()
+	protected constructor(message: string, options?: ErrorOptions) {
+		super(message, options)
 	}
 }

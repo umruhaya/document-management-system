@@ -38,6 +38,7 @@ demonstrated with object interaction (or sequence) diagrams, but they cannot be 
 
 Domain Model should satisfy both objectives, analysis and design. 
 
+
 ## Associations
 
 - one to many can be models with a collection/list type of property

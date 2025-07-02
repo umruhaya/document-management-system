@@ -1,32 +1,67 @@
-import { Result } from '@carbonteq/fp'
-import { BaseEntity, type IEntity } from '~/domain/base.entity'
-import { UserValidationError } from '~/domain/errors'
+import type { Result } from '@carbonteq/fp'
+import type { UserValidationError } from '~/domain/errors/errors.users'
+import { BaseEntity, type IEntity } from '~/domain/utils/base.entity'
+import { parseULID, type ULID } from '~/domain/utils/refined.types'
+import { UserGuards } from './user.guards'
 
-type UserSpecificField = { username: string; hashedPassword: string }
-
-export class UserEntity extends BaseEntity implements IEntity {
+export interface SerializedUser {
+	/** ULID identifier */
 	id: string
-	createdAt: Date
-	updatedAt: Date
+	createdAt: string
+	updatedAt: string
 	username: string
 	hashedPassword: string
+}
 
-	private constructor(entity: { id: string } & UserSpecificField) {
-		super({ id: entity.id })
-		this.id = entity.id
-		this.createdAt = new Date()
-		this.updatedAt = new Date()
-		this.username = entity.username
-		this.hashedPassword = entity.hashedPassword
+/** User domain model */
+/** User domain model */
+export class UserEntity extends BaseEntity implements IEntity {
+	readonly username: string
+	readonly hashedPassword: string
+
+	private constructor(data: SerializedUser) {
+		super()
+		this._fromSerialized({
+			id: data.id as ULID,
+			createdAt: data.createdAt,
+			updatedAt: data.updatedAt,
+		})
+
+		this.username = data.username
+		this.hashedPassword = data.hashedPassword
 	}
 
-	static validateUsername(user: UserEntity) {
-		return user.username.includes(' ')
-			? Result.Err(new UserValidationError({ username: user.username }, 'Username cannot contain spaces'))
-			: Result.Ok(user)
+	/** Factory method for creating a user with validation */
+	/**
+	 * Create a UserEntity from raw input (ID, username, password hash).
+	 * Parses and validates the ULID and domain rules.
+	 */
+	static create(input: {
+		id: string
+		username: string
+		hashedPassword: string
+		createdAt?: string
+		updatedAt?: string
+	}): Result<UserEntity, UserValidationError | Error> {
+		const now = new Date().toISOString()
+		return parseULID(input.id).flatMap((id) => {
+			const serialized: SerializedUser = {
+				id,
+				createdAt: input.createdAt ?? now,
+				updatedAt: input.updatedAt ?? now,
+				username: input.username,
+				hashedPassword: input.hashedPassword,
+			}
+			return UserGuards.validateCreate(serialized).map(() => new UserEntity(serialized))
+		})
 	}
 
-	static create(user: UserEntity) {
-		return Result.Ok(new UserEntity(user)).flatMap(UserEntity.validateUsername)
+	/** Serialize the entity into plain object */
+	serialize() {
+		return {
+			...this._serialize(),
+			username: this.username,
+			hashedPassword: this.hashedPassword,
+		}
 	}
 }

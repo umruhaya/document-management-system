@@ -8,9 +8,10 @@ import {
 } from '~/app/services/document-presigned-url.service'
 import type { AccessControlListEntity, DocumentRole } from '~/domain/access-control-entry/access-control-entry.entity'
 import type { AclRepository } from '~/domain/access-control-entry/acl.repository'
-import type { DocumentEntity } from '~/domain/document/document.entity'
+import { DocumentEntity } from '~/domain/document/document.entity'
 import type { DocumentRepository } from '~/domain/document/document.repository'
 import { DocumentNotFoundError, DocumentValidationError, NotFoundError } from '~/domain/errors'
+import type { ULID } from '~/domain/utils/refined.types'
 import type { DocumentCreateType, DocumentPatchParamsType, DocumentPatchType } from '~/presentation/dtos/documents'
 import type { PaginationOptions } from '~/presentation/types'
 
@@ -47,14 +48,27 @@ export class DocumentService {
 					.toPromise()
 	}
 
-	create(userId: string, document: DocumentCreateType): Promise<Result<DocumentEntity, Error>> {
-		return this.documentRepo.create(userId, {
-			...document,
+	/** Validate and create document entity, then persist via repository */
+	async create(userId: string, document: DocumentCreateType): Promise<Result<DocumentEntity, Error>> {
+		const now = new Date().toISOString()
+		const serialized = {
 			id: ulid(),
-			size: document.content.length,
+			createdAt: now,
+			updatedAt: now,
+			title: document.title,
+			description: document.description,
+			fileType: document.fileType,
 			version: 1,
+			size: document.content.length,
+			content: document.content,
 			tags: document.tags ?? [],
-		})
+		}
+		const entityRes = DocumentEntity.create(serialized)
+		if (entityRes.isErr()) {
+			return Result.Err(entityRes.unwrapErr())
+		}
+		const docEntity = entityRes.unwrap()
+		return this.documentRepo.create(userId, docEntity)
 	}
 
 	async update(userId: string, document: DocumentPatchParamsType & DocumentPatchType): Promise<Result<true, Error>> {
@@ -62,7 +76,7 @@ export class DocumentService {
 		return result
 			.flatMap(async (entry) => {
 				return entry.role === 'owner' || entry.role === 'editor'
-					? await this.documentRepo.update(document)
+					? this.documentRepo.update({ ...document, id: document.id as ULID })
 					: Result.Err(new DocumentNotFoundError({ documentId: document.id }))
 			})
 			.toPromise()

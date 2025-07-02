@@ -1,7 +1,17 @@
-import { Result } from '@carbonteq/fp'
-import { BaseEntity, type IEntity } from '~/domain/base.entity'
+import type { Result } from '@carbonteq/fp'
+import type { DocumentValidationError } from '~/domain/errors/errors.documents'
+import { BaseEntity, type IEntity } from '~/domain/utils/base.entity'
+import type { ULID } from '~/domain/utils/refined.types'
+import { parseULID } from '~/domain/utils/refined.types'
+import { DocumentGuards } from './document.guards'
 
-type DocumentSpecificFields = {
+/** Serialized form of DocumentEntity for persistence */
+/** Serialized form of DocumentEntity for persistence */
+export interface SerializedDocument {
+	/** ULID identifier */
+	id: string
+	createdAt: string
+	updatedAt: string
 	title: string
 	description: string
 	fileType: string
@@ -9,37 +19,81 @@ type DocumentSpecificFields = {
 	size: number
 	content: string
 	tags: string[]
-	createdAt: Date
-	updatedAt: Date
 }
 
+/** Document domain model */
 export class DocumentEntity extends BaseEntity implements IEntity {
-	id: string
-	title: string
-	description: string
-	fileType: string
-	version: number
-	size: number
-	content: string
-	tags: string[]
-	createdAt: Date
-	updatedAt: Date
+	readonly title: string
+	readonly description: string
+	readonly fileType: string
+	readonly version: number
+	readonly size: number
+	readonly content: string
+	readonly tags: string[]
 
-	private constructor(entity: { id: string } & DocumentSpecificFields) {
-		super({ id: entity.id })
-		this.id = entity.id
-		this.title = entity.title
-		this.description = entity.description
-		this.fileType = entity.fileType
-		this.version = entity.version
-		this.size = entity.size
-		this.content = entity.content
-		this.tags = entity.tags
-		this.createdAt = entity.createdAt
-		this.updatedAt = entity.updatedAt
+	private constructor(data: SerializedDocument) {
+		super()
+		this._fromSerialized({
+			id: data.id as ULID,
+			createdAt: data.createdAt,
+			updatedAt: data.updatedAt,
+		})
+
+		this.title = data.title
+		this.description = data.description
+		this.fileType = data.fileType
+		this.version = data.version
+		this.size = data.size
+		this.content = data.content
+		this.tags = data.tags
 	}
 
-	static create(document: DocumentEntity) {
-		return Result.Ok(new DocumentEntity(document))
+	/** Factory method for creating a document with validation */
+	/**
+	 * Create a DocumentEntity from raw data (string IDs), performing ULID parsing
+	 * and domain-level validation.
+	 */
+	static create(input: {
+		id: string
+		title: string
+		description: string
+		fileType: string
+		version: number
+		size: number
+		content: string
+		tags: string[]
+		createdAt?: string
+		updatedAt?: string
+	}): Result<DocumentEntity, DocumentValidationError | Error> {
+		const now = new Date().toISOString()
+		return parseULID(input.id).flatMap((id) => {
+			const serialized: SerializedDocument = {
+				id,
+				createdAt: input.createdAt ?? now,
+				updatedAt: input.updatedAt ?? now,
+				title: input.title,
+				description: input.description,
+				fileType: input.fileType,
+				version: input.version,
+				size: input.size,
+				content: input.content,
+				tags: input.tags,
+			}
+			return DocumentGuards.validateCreate(serialized).map(() => new DocumentEntity(serialized))
+		})
+	}
+
+	/** Serialize the entity into plain object */
+	serialize(): SerializedDocument {
+		return {
+			...this._serialize(),
+			title: this.title,
+			description: this.description,
+			fileType: this.fileType,
+			version: this.version,
+			size: this.size,
+			content: this.content,
+			tags: this.tags,
+		}
 	}
 }

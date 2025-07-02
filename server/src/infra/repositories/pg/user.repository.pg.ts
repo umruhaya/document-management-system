@@ -22,8 +22,8 @@ export class UserRepositoryPg extends UserRepository {
 				return user
 					? UserEntity.create({
 							...user,
-							createdAt: new Date(user.createdAt),
-							updatedAt: new Date(user.updatedAt),
+							createdAt: new Date(user.createdAt).toISOString(),
+							updatedAt: new Date(user.updatedAt).toISOString(),
 						})
 					: Result.Err(new UserNotFoundError({ userId }))
 			},
@@ -43,8 +43,8 @@ export class UserRepositoryPg extends UserRepository {
 				return user
 					? UserEntity.create({
 							...user,
-							createdAt: new Date(user.createdAt),
-							updatedAt: new Date(user.updatedAt),
+							createdAt: new Date(user.createdAt).toISOString(),
+							updatedAt: new Date(user.updatedAt).toISOString(),
 						})
 					: Result.Err(new UserNotFoundError({ username }))
 			},
@@ -52,19 +52,31 @@ export class UserRepositoryPg extends UserRepository {
 		})
 	}
 
-	create(user: UserEntity): Promise<Result<UserEntity, Error>> {
+	create(input: Pick<UserEntity, 'id' | 'username' | 'hashedPassword'>): Promise<Result<UserEntity, Error>> {
 		return TryCatchAsync({
 			fn: async () => {
-				await db
-					.insert(table.users)
-					.values({ ...user, createdAt: user.createdAt.toISOString(), updatedAt: user.updatedAt.toISOString() })
-				return Result.Ok(user)
+				// build entity and persist
+				const now = new Date().toISOString()
+				const serialized = {
+					id: input.id,
+					createdAt: now,
+					updatedAt: now,
+					username: input.username,
+					hashedPassword: input.hashedPassword,
+				}
+				const entityRes = UserEntity.create(serialized)
+				if (entityRes.isErr()) {
+					return Result.Err(entityRes.unwrapErr())
+				}
+				const entity = entityRes.unwrap()
+				await db.insert(table.users).values({ ...entity.serialize() })
+				return Result.Ok(entity)
 			},
 			onError: (error) =>
 				Result.Err(
 					error instanceof DatabaseError && error.code === PostgresError.UNIQUE_VIOLATION
-						? new UserAlreadyExistsError({ userId: user.id })
-						: new UnknownError(`User Insert Failed With values ${JSON.stringify(user)}`, 'Failed user.create'),
+						? new UserAlreadyExistsError({ userId: input.id })
+						: new UnknownError(`User Insert Failed With values ${JSON.stringify(input)}`, 'Failed user.create'),
 				),
 		})
 	}

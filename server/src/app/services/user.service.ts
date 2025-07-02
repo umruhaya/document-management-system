@@ -4,7 +4,7 @@ import { inject, injectable } from 'tsyringe'
 import { ulid } from 'ulidx'
 import { AuthorizationService } from '~/app/services/authorization.service'
 import { AuthenticationError } from '~/domain/errors'
-import type { UserEntity } from '~/domain/user/user.entity'
+import { UserEntity } from '~/domain/user/user.entity'
 import type { UserRepository } from '~/domain/user/user.repository'
 
 @injectable()
@@ -23,8 +23,23 @@ export class UserService {
 		const { username, password } = user
 		const userId = ulid()
 		const hashedPassword = await argon2.hash(password)
-		const createUserRes = await this.userRepo.create({ id: userId, username, hashedPassword })
-		return createUserRes.map((user) => ({ ...user, token: AuthorizationService.signPayload({ userId, username }) }))
+		// validate and create user entity, then persist
+		const entityRes = UserEntity.create({ id: userId, username, hashedPassword })
+		if (entityRes.isErr()) {
+			return Result.Err(entityRes.unwrapErr())
+		}
+		const userEntity = entityRes.unwrap()
+		const createdRes = await this.userRepo.create({
+			id: userEntity.id,
+			username: userEntity.username,
+			hashedPassword: userEntity.hashedPassword,
+		})
+		return createdRes.map(
+			(userEntity) =>
+				Object.assign(userEntity, {
+					token: AuthorizationService.signPayload({ userId: userEntity.id, username: userEntity.username }),
+				}) as UserEntity & { token: string },
+		)
 	}
 
 	async update(user: { id: string; username?: string; password?: string }): Promise<Result<true, Error>> {

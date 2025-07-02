@@ -1,6 +1,6 @@
 import type { Result } from '@carbonteq/fp'
-import type { AccessControlListEntity, DocumentRole } from '~/domain/access-control-entry/access-control-entry.entity'
-
+import type { AccessControlListEntity, DocumentRole } from './access-control-entry.entity'
+/** Repository interface for ACL entries */
 export abstract class AclRepository {
 	abstract getByDocumentId(documentId: string): Promise<Result<AccessControlListEntity[], Error>>
 	abstract getAcl(userId: string, documentId: string): Promise<Result<AccessControlListEntity, Error>>

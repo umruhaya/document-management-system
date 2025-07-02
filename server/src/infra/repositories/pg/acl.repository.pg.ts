@@ -1,9 +1,11 @@
 import { Result } from '@carbonteq/fp'
 import { and, eq } from 'drizzle-orm'
 import { injectable } from 'tsyringe'
-import type { AccessControlListEntity, DocumentRole } from '~/domain/access-control-entry/access-control-entry.entity'
+import { ulid } from 'ulidx'
+import { AccessControlListEntity, type DocumentRole } from '~/domain/access-control-entry/access-control-entry.entity'
 import { AclRepository } from '~/domain/access-control-entry/acl.repository'
 import { ACLEntryNotFoundError, UnknownError } from '~/domain/errors'
+import { createULID, parseULID } from '~/domain/utils/refined.types'
 import { db, table } from '~/infra/database/client'
 import { TryCatchAsync } from '~/utils/trycatch'
 
@@ -17,7 +19,10 @@ export class AclRepositoryPg extends AclRepository {
 					.from(table.documentAccess)
 					.where(eq(table.documentAccess.documentId, documentId))
 					.execute()
-				return Result.Ok(entries)
+
+				return Result.all(
+					...entries.map((entry) => AccessControlListEntity.create({ ...entry, id: createULID() })),
+				).mapErr((err) => err[0] as Error)
 			},
 			onError: (error) => {
 				console.debug({ documentId })
@@ -41,7 +46,9 @@ export class AclRepositoryPg extends AclRepository {
 					.where(and(eq(table.documentAccess.userId, userId), eq(table.documentAccess.documentId, documentId)))
 					.execute()
 					.then((r) => r.at(0))
-				return aclEntry ? Result.Ok(aclEntry) : Result.Err(new ACLEntryNotFoundError({ userId, documentId }))
+				return aclEntry
+					? AccessControlListEntity.create({ ...aclEntry, id: createULID() })
+					: Result.Err(new ACLEntryNotFoundError({ userId, documentId }))
 			},
 			onError: (error) =>
 				Result.Err(
