@@ -51,7 +51,7 @@ export class DocumentRepositoryPg extends DocumentRepository {
 							fileType: table.documents.fileType,
 							version: table.documents.version,
 							size: table.documents.size,
-							content: filters.exlcudeContent ? sql<string>`''` : table.documents.content,
+							content: filters.exlcudeContent ? sql<string>`'NO_CONTENT'` : table.documents.content,
 							tags: table.documents.tags,
 							createdAt: table.documents.createdAt,
 							updatedAt: table.documents.updatedAt,
