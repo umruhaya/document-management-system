@@ -1,12 +1,10 @@
 import type { Result } from '@carbonteq/fp'
-import type { DocumentValidationError } from '~/domain/errors/errors.documents'
+import type { DocumentValidationError } from '~/domain/document/document.errors'
 import { BaseEntity, type IEntity } from '~/domain/utils/base.entity'
 import type { ULID } from '~/domain/utils/refined.types'
 import { parseULID } from '~/domain/utils/refined.types'
 import { DocumentGuards } from './document.guards'
 
-/** Serialized form of DocumentEntity for persistence */
-/** Serialized form of DocumentEntity for persistence */
 export interface SerializedDocument {
 	/** ULID identifier */
 	id: string

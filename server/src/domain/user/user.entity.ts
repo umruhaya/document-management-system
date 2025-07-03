@@ -1,5 +1,5 @@
 import type { Result } from '@carbonteq/fp'
-import type { UserValidationError } from '~/domain/errors/errors.users'
+import type { UserValidationError } from '~/domain/user/users.errors'
 import { BaseEntity, type IEntity } from '~/domain/utils/base.entity'
 import { parseULID, type ULID } from '~/domain/utils/refined.types'
 import { UserGuards } from './user.guards'
@@ -13,7 +13,6 @@ export interface SerializedUser {
 	hashedPassword: string
 }
 
-/** User domain model */
 /** User domain model */
 export class UserEntity extends BaseEntity implements IEntity {
 	readonly username: string
@@ -32,10 +31,6 @@ export class UserEntity extends BaseEntity implements IEntity {
 	}
 
 	/** Factory method for creating a user with validation */
-	/**
-	 * Create a UserEntity from raw input (ID, username, password hash).
-	 * Parses and validates the ULID and domain rules.
-	 */
 	static create(input: {
 		id: string
 		username: string

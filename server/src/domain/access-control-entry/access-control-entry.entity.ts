@@ -7,10 +7,7 @@ import { AclGuards } from './acl.guards'
 /** Allowed roles for document access */
 export type DocumentRole = 'viewer' | 'editor' | 'owner'
 
-/** Serialized form of ACL entry for persistence */
-/** Raw serialized ACL entry for persistence */
 export interface SerializedAcl {
-	/** ULID identifier */
 	id: string
 	createdAt: string
 	updatedAt: string

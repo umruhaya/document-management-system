@@ -66,24 +66,12 @@ export class DocumentRepositoryPg extends DocumentRepository {
 
 				// map raw rows to domain entities
 				const items: DocumentEntity[] = []
-				for (const row of rawRows) {
-					const serialized = {
-						id: row.id,
-						createdAt: new Date(row.createdAt).toISOString(),
-						updatedAt: new Date(row.updatedAt).toISOString(),
-						title: row.title,
-						description: row.description,
-						fileType: row.fileType,
-						version: row.version,
-						size: row.size,
-						content: row.content,
-						tags: row.tags,
+				for (const doc of rawRows) {
+					const docRes = DocumentEntity.create(doc)
+					if (docRes.isErr()) {
+						return Result.Err(docRes.unwrapErr())
 					}
-					const entRes = DocumentEntity.create(serialized)
-					if (entRes.isErr()) {
-						return Result.Err(entRes.unwrapErr())
-					}
-					items.push(entRes.unwrap())
+					items.push(docRes.unwrap())
 				}
 
 				return Result.Ok({
@@ -107,13 +95,7 @@ export class DocumentRepositoryPg extends DocumentRepository {
 					.where(eq(table.documents.id, documentId))
 					.execute()
 					.then((r) => r.at(0))
-				return document
-					? DocumentEntity.create({
-							...document,
-							createdAt: new Date(document.createdAt).toISOString(),
-							updatedAt: new Date(document.updatedAt).toISOString(),
-						})
-					: Result.Err(new DocumentNotFoundError({ documentId }))
+				return document ? DocumentEntity.create(document) : Result.Err(new DocumentNotFoundError({ documentId }))
 			},
 			onError: (error) => Result.Err(new UnknownError(`Error: ${error}`, 'Failed document.get')),
 		})

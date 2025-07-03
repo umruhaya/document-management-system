@@ -1,5 +1,5 @@
 import { Result } from '@carbonteq/fp'
-import { DocumentValidationError } from '~/domain/errors/errors.documents'
+import { DocumentValidationError } from '~/domain/document/document.errors'
 import type { SerializedDocument } from './document.entity'
 
 /**

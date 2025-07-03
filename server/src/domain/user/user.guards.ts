@@ -1,5 +1,5 @@
 import { Result } from '@carbonteq/fp'
-import { UserValidationError } from '~/domain/errors/errors.users'
+import { UserValidationError } from '~/domain/user/users.errors'
 import type { SerializedUser } from './user.entity'
 
 /**

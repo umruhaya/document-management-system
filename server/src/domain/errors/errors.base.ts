@@ -1,12 +1,12 @@
 // Generic Errors
 export class UnknownError extends Error {
-	constructor(input: unknown, reason: string) {
-		super(`Unknown error: ${reason} \nInput: ${JSON.stringify(input)}`)
+	constructor(input: unknown, reason: string, options?: ErrorOptions) {
+		super(`Unknown error: ${reason} \nInput: ${JSON.stringify(input)}`, options)
 	}
 }
 export class AuthenticationError extends Error {
-	constructor(input: unknown, reason: string) {
-		super(`Unknown error: ${reason} \nInput: ${JSON.stringify(input)}`)
+	constructor(input: unknown, reason: string, options?: ErrorOptions) {
+		super(`Authentication error: ${reason} \nInput: ${JSON.stringify(input)}`, options)
 	}
 }
 

@@ -2,8 +2,6 @@ import type { Result } from '@carbonteq/fp'
 import type { DocumentEntity, SerializedDocument } from '~/domain/document/document.entity'
 import type { PaginatedCollection, PaginationOptions } from '~/presentation/types'
 
-/** Repository interface for DocumentEntity */
-/** Repository interface for DocumentEntity */
 export abstract class DocumentRepository {
 	abstract search(
 		userId: string,
@@ -18,9 +16,6 @@ export abstract class DocumentRepository {
 		}>,
 	): Promise<Result<PaginatedCollection<DocumentEntity>, Error>>
 	abstract getById(documentId: string): Promise<Result<DocumentEntity, Error>>
-	/** Persist a new document for a given user */
-	/** Persist a new document for a given user */
-	/** Persist a new document for a given user */
 	abstract create(
 		userId: string,
 		document: Omit<SerializedDocument, 'createdAt' | 'updatedAt'>,

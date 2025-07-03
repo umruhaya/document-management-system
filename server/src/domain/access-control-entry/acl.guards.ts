@@ -1,5 +1,5 @@
 import { Result } from '@carbonteq/fp'
-import { ACLEntryValidationError } from '~/domain/errors/errors.acls'
+import { ACLEntryValidationError } from '~/domain/access-control-entry/acl.errors'
 import type { DocumentRole, SerializedAcl } from './access-control-entry.entity'
 
 /** Validation rules for ACL entries */

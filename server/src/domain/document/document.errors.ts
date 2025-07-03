@@ -1,16 +1,16 @@
-import { AlreadyExistsError, DomainError, NotFoundError, ValidationError } from './errors.base'
+import { AlreadyExistsError, DomainError, NotFoundError, ValidationError } from '../errors/errors.base'
 
 // Document-specific Domain Error
 export class DocumentDomainError extends DomainError {
 	constructor(input: unknown, reason: string) {
-		super(`${JSON.stringify(input)} Document domain error: ${reason}`)
+		super(`Document domain error: ${reason}, input: ${JSON.stringify(input)}`)
 	}
 }
 
 // Document-specific Validation Error
 export class DocumentValidationError extends ValidationError {
 	constructor(input: unknown, reason: string) {
-		super(`${JSON.stringify(input)} Document validation error: ${reason}`)
+		super(`Document validation error: ${reason}, input: ${JSON.stringify(input)}`)
 	}
 }
 
