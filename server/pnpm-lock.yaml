@@ -26,6 +26,9 @@ importers:
       argon2:
         specifier: ^0.43.0
         version: 0.43.0
+      commander:
+        specifier: ^14.0.0
+        version: 14.0.0
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
@@ -575,6 +578,10 @@ packages:
 
   colorspace@1.1.4:
     resolution: {integrity: sha512-BgvKJiuVu1igBUF2kEjRCZXol6wiiGbY5ipL/oVPwm0BL9sIpMIzM8IK7vwuxIIzOXMV3Ey5w+vxhm0rR/TN8w==}
+
+  commander@14.0.0:
+    resolution: {integrity: sha512-2uM9rYjPvyq39NwLRqaiLtWHyDC1FvryJDa2ATTVims5YAS4PupsEQsDvP14FqhFr0P49CYDugi59xaxJlTXRA==}
+    engines: {node: '>=20'}
 
   content-disposition@1.0.0:
     resolution: {integrity: sha512-Au9nRL8VNUut/XSzbQA38+M78dzP4D+eqg3gfJHMIHHYa3bg067xj1KxMUWj+VULbiZMowKngFFbKczUrNJ1mg==}
@@ -1469,6 +1476,8 @@ snapshots:
     dependencies:
       color: 3.2.1
       text-hex: 1.0.0
+
+  commander@14.0.0: {}
 
   content-disposition@1.0.0:
     dependencies:
