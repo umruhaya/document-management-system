@@ -5,7 +5,7 @@ import {
 	DocumentPresignedUrlService,
 	type PresignOptions,
 	type VerificationInput,
-} from '~/app/services/document-presigned-url.service'
+} from '~/infra/services/document-presigned-url.service'
 import type { AccessControlListEntity, DocumentRole } from '~/domain/access-control-entry/access-control-entry.entity'
 import type { AclRepository } from '~/domain/access-control-entry/acl.repository'
 import { DocumentEntity } from '~/domain/document/document.entity'

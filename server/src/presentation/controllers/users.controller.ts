@@ -1,6 +1,6 @@
 import { container } from 'tsyringe'
-import { AuthorizationService } from '~/app/services/authorization.service'
 import { UserService } from '~/app/services/user.service'
+import { AuthorizationService } from '~/infra/services/authorization.service'
 import type { UsersContract } from '~/presentation/contracts/users'
 import { mapErrorToStatusCode } from '~/presentation/utils/http-mapper'
 import { matchResultReturn } from '~/presentation/utils/result-match'

@@ -2,10 +2,10 @@ import { Result } from '@carbonteq/fp'
 import argon2 from 'argon2'
 import { inject, injectable } from 'tsyringe'
 import { ulid } from 'ulidx'
-import { AuthorizationService } from '~/app/services/authorization.service'
 import { AuthenticationError } from '~/domain/errors'
 import { UserEntity } from '~/domain/user/user.entity'
 import type { UserRepository } from '~/domain/user/user.repository'
+import { AuthorizationService } from '~/infra/services/authorization.service'
 
 @injectable()
 export class UserService {
