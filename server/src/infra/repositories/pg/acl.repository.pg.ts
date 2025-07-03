@@ -1,11 +1,10 @@
 import { Result } from '@carbonteq/fp'
-import { and, eq } from 'drizzle-orm'
+import { and, count, eq } from 'drizzle-orm'
 import { injectable } from 'tsyringe'
-import { ulid } from 'ulidx'
 import { AccessControlListEntity, type DocumentRole } from '~/domain/access-control-entry/access-control-entry.entity'
 import { AclRepository } from '~/domain/access-control-entry/acl.repository'
-import { ACLEntryNotFoundError, UnknownError } from '~/domain/errors'
-import { createULID, parseULID } from '~/domain/utils/refined.types'
+import { ACLEntryNotFoundError, DocumentDomainError, UnknownError } from '~/domain/errors'
+import { createULID } from '~/domain/utils/refined.types'
 import { db, table } from '~/infra/database/client'
 import { TryCatchAsync } from '~/utils/trycatch'
 
@@ -57,9 +56,52 @@ export class AclRepositoryPg extends AclRepository {
 		})
 	}
 
+	private async isOwner(userId: string, documentId: string): Promise<boolean> {
+		return db
+			.select()
+			.from(table.documentAccess)
+			.where(and(eq(table.documentAccess.userId, userId), eq(table.documentAccess.documentId, documentId)))
+			.execute()
+			.then((r) => r.at(0)?.role === 'owner')
+	}
+
+	private async ownerCount(documentId: string): Promise<number> {
+		return db
+			.select({ count: count() })
+			.from(table.documentAccess)
+			.where(and(eq(table.documentAccess.documentId, documentId), eq(table.documentAccess.role, 'owner')))
+			.execute()
+			.then((r) => r.at(0)?.count ?? 0)
+	}
+
 	setAcl(userId: string, documentId: string, role: DocumentRole): Promise<Result<true, Error>> {
 		return TryCatchAsync({
 			fn: async () => {
+				// Only owners can update roles
+				const isOwner = await this.isOwner(userId, documentId)
+				if (!isOwner) {
+					return Result.Err(
+						new DocumentDomainError({ userId, documentId, role }, 'Only an owner can update ACL entries'),
+					)
+				}
+
+				// If demoting/removing owner, ensure at least one owner remains
+				const currentEntry = await db
+					.select()
+					.from(table.documentAccess)
+					.where(and(eq(table.documentAccess.userId, userId), eq(table.documentAccess.documentId, documentId)))
+					.execute()
+					.then((r) => r.at(0))
+
+				if (currentEntry?.role === 'owner' && role !== 'owner') {
+					const ownerCount = await this.ownerCount(documentId)
+					if (ownerCount <= 1) {
+						return Result.Err(
+							new DocumentDomainError({ userId, documentId, role }, 'A document must have at least one owner'),
+						)
+					}
+				}
+
 				const entry = await db
 					.insert(table.documentAccess)
 					.values({ userId, documentId, role })
@@ -86,6 +128,29 @@ export class AclRepositoryPg extends AclRepository {
 	revokeAcl(userId: string, documentId: string): Promise<Result<true, Error>> {
 		return TryCatchAsync({
 			fn: async () => {
+				// Only owners can revoke
+				const isOwner = await this.isOwner(userId, documentId)
+				if (!isOwner) {
+					return Result.Err(new DocumentDomainError({ userId, documentId }, 'Only an owner can revoke ACL entries'))
+				}
+
+				// If revoking owner, ensure at least one owner remains
+				const currentEntry = await db
+					.select()
+					.from(table.documentAccess)
+					.where(and(eq(table.documentAccess.userId, userId), eq(table.documentAccess.documentId, documentId)))
+					.execute()
+					.then((r) => r.at(0))
+
+				if (currentEntry?.role === 'owner') {
+					const ownerCount = await this.ownerCount(documentId)
+					if (ownerCount <= 1) {
+						return Result.Err(
+							new DocumentDomainError({ userId, documentId }, 'A document must have at least one owner'),
+						)
+					}
+				}
+
 				const _entry = await db
 					.delete(table.documentAccess)
 					.where(and(eq(table.documentAccess.userId, userId), eq(table.documentAccess.documentId, documentId)))

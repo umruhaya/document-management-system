@@ -11,11 +11,11 @@ import {
 
 export function mapErrorToStatusCode(error: Error) {
 	if (error instanceof ValidationError) return 400
+	if (error instanceof DomainError) return 400
 	if (error instanceof AuthenticationError) return 401
 	if (error instanceof NotFoundError) return 404
 	if (error instanceof AlreadyExistsError) return 409
 	if (error instanceof UnknownError) return 500
-	if (error instanceof DomainError) return 500
 	return 500
 }
 
