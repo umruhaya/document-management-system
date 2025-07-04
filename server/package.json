@@ -6,7 +6,8 @@
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:push": "drizzle-kit push",
-		"db:studio": "drizzle-kit studio --verbose"
+		"db:studio": "drizzle-kit studio --verbose",
+		"db:seed": "tsx --env-file=.env src/scripts/seed.ts"
 	},
 	"dependencies": {
 		"@carbonteq/fp": "^0.8.2",
@@ -31,6 +32,7 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.0.0",
+		"@faker-js/faker": "^8.0.2",
 		"@types/express": "^5.0.3",
 		"@types/jsonwebtoken": "^9.0.10",
 		"drizzle-kit": "^0.31.1",

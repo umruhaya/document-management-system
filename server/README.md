@@ -21,3 +21,13 @@ We are using [biome.js](https://biomejs.dev/guides/getting-started/#usage) for f
 ```bash
 pnpm exec biome format --write # format all files
 ```
+
+## Database Seeding
+
+To populate the database with extensive fake data for development and testing, run:
+
+```bash
+pnpm run db:seed
+```
+
+The seed script uses faker.js to generate users, documents, and access control entries.

@@ -18,3 +18,6 @@ export const documentAccess = pgTable(
 	},
 	(table) => [primaryKey({ columns: [table.userId, table.documentId] })],
 )
+
+export type DocumentsAccessSelect = typeof documentAccess.$inferSelect
+export type DocumentsAccessInsert = typeof documentAccess.$inferInsert

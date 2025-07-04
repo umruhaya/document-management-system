@@ -12,3 +12,6 @@ export const users = pgTable(
 	},
 	(table) => [index().on(table.username), unique().on(table.username)],
 )
+
+export type UsersSelect = typeof users.$inferSelect
+export type UsersInsert = typeof users.$inferInsert

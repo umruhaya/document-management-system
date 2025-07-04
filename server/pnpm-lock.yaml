@@ -69,6 +69,9 @@ importers:
       '@biomejs/biome':
         specifier: 2.0.0
         version: 2.0.0
+      '@faker-js/faker':
+        specifier: ^8.4.1
+        version: 8.4.1
       '@types/express':
         specifier: ^5.0.3
         version: 5.0.3
@@ -446,6 +449,10 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@faker-js/faker@8.4.1':
+    resolution: {integrity: sha512-XQ3cU+Q8Uqmrbf2e0cIC/QN43sTBSC8KF12u29Mb47tWrt2hAgBXSgpZMj4Ao8Uk0iJcU99QsOCaIL8934obCg==}
+    engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0, npm: '>=6.14.13'}
 
   '@hono/swagger-ui@0.5.2':
     resolution: {integrity: sha512-7wxLKdb8h7JTdZ+K8DJNE3KXQMIpJejkBTQjrYlUWF28Z1PGOKw6kUykARe5NTfueIN37jbyG/sBYsbzXzG53A==}
@@ -1326,6 +1333,8 @@ snapshots:
 
   '@esbuild/win32-x64@0.25.5':
     optional: true
+
+  '@faker-js/faker@8.4.1': {}
 
   '@hono/swagger-ui@0.5.2(hono@4.8.0)':
     dependencies:

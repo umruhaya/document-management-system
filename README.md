@@ -69,3 +69,12 @@ This will run the migrations, but before that it will show you the DDL query gen
 ```bash
 pnpm run db:studio
 ```
+
+### Database Seeding
+
+After running migrations, populate the database with fake data for development and testing:
+
+```bash
+cd server
+pnpm run db:seed
+```

@@ -13,3 +13,6 @@ export const documents = pgTable('documents', {
 	createdAt: timestamp('created_at', { mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp('updated_at', { mode: 'string' }).defaultNow().notNull(),
 })
+
+export type DocumentsSelect = typeof documents.$inferSelect
+export type DocumentsInsert = typeof documents.$inferInsert
