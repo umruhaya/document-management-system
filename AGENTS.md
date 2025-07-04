@@ -1,197 +1,233 @@
-in the server directory, i have tried to setup a project and i am trying to follow domain driven design and layered architecure, now in files like server/src/domain/user/user.entity.ts, i am trying to write an entity but it should follow some proper structure 
+# Server Directory Documentation
 
+Project Name: Document Management System
 
-take some inspiration from here
+at top level we have the `server` directory which is our main concern for the most part.
+
+This document provides an overview of the `server` codebase, its organization following Domain-Driven Design (DDD) principles, the technology stack, key libraries, and instructions for getting started.
+
+## Table of Contents
+- [Introduction](#introduction)
+- [Tech Stack](#tech-stack)
+- [Getting Started](#getting-started)
+- [Directory Structure](#directory-structure)
+- [Domain-Driven Design Layers](#domain-driven-design-layers)
+  - [Domain Layer](#domain-layer)
+  - [Application Layer](#application-layer)
+  - [Infrastructure Layer](#infrastructure-layer)
+  - [Presentation Layer](#presentation-layer)
+  - [Utilities](#utilities)
+- [Dependency Injection](#dependency-injection)
+- [Database Configuration](#database-configuration)
+- [OpenAPI & Routing (TS-Rest)](#openapi--routing-ts-rest)
+- [Scripts & Tooling](#scripts--tooling)
+
+## Introduction
+
+The `server` directory implements the backend for the Document Management System (DMS). It is built with TypeScript and follows a layered architecture inspired by Domain-Driven Design (DDD). The project leverages modern libraries and frameworks to enforce strong typing, validation, dependency injection, and easy API contract definitions.
+
+## Tech Stack
+
+- **Language & Runtime**: TypeScript (via `tsx`), Node.js-compatible (Bun recommended for development).
+- **Web Framework**: Express (v5)
+- **API Contract & Documentation**: `@ts-rest/express`, `@ts-rest/open-api`, Swagger UI
+- **ORM & Database**: Drizzle ORM (`drizzle-orm`), Drizzle Kit, PostgreSQL (`postgres` driver)
+- **Dependency Injection**: `tsyringe`
+- **Validation & Types**: Zod
+- **Security**: Argon2 (password hashing), JSON Web Tokens (`jsonwebtoken`)
+- **Logging**: Winston
+- **Utilities**: `@carbonteq/fp`, `date-fns`, `mime`, `ulidx`
+
+## Getting Started
+
+1. Copy or rename `.env.example` to `.env` and fill in your environment variables.
+2. Install dependencies:
+   ```bash
+   bun install
+   ```
+3. Run in development mode:
+   ```bash
+   bun run dev
+   ```
+4. Open your browser at `http://localhost:3000` (or the host/port configured in `.env`).
+
+## Directory Structure
+
 ```
-1. Base Entity (base.entity.ts)
-
-Provides foundational entity functionality with Effect support:
-
-    BaseEntity class: Abstract base with id, createdAt, updatedAt
-    IEntity interface: Core entity contract
-    SerializedEntity: Type for persistence layer
-    _fromSerialized(): Safe entity reconstruction from data
-    _serialize(): Convert entity to plain object
-
-2. Refined Types (refined.types.ts)
-
-Branded types with Effect Schema integration:
-
-    UUID: Branded UUID type with validation
-    DateTime: Branded DateTime with coercion
-    Email: Validated email addresses
-    StringToUUID: Effect Schema transformer for UUID
-    DateTimeFromAny: Union transformer for multiple date formats
-    Optional(): Helper for optional fields with null handling
-
-3. Validation Utils (validation.utils.ts)
-
-Reusable validation building blocks:
-
-    createNotEmptyFilter(): Factory for non-empty string validation
-    Optional(): Wrapper for nullable schema fields
-
-4. Base Repository (base.repository.ts)
-
-Abstract repository pattern with Effect:
-
-    BaseRepository<T>: Generic repository base class
-    Common CRUD operations: insert, update, fetchById, etc
+├── .env.example
+├── drizzle.config.js          # Drizzle Kit configuration for migrations
+├── package.json
+├── pnpm-lock.yaml
+├── README.md
+├── server.md                 # ← this documentation file
+├── src
+│   ├── app                   # Application services (use-cases)
+│   ├── domain                # Domain layer: entities, repositories, errors, guards
+│   ├── infra                 # Infrastructure: DI container, DB client, low-level services
+│   ├── presentation          # HTTP controllers, contracts, DTOs, middlewares, OpenAPI setup
+│   ├── utils                 # Shared utilities (mappers, helpers)
+│   ├── main.ts               # CLI entry-point using Commander
+│   └── server.ts             # Bootstrap script for HTTP server
+├── tsconfig.json
+└── ...
 ```
 
-you would use Option and Result from our @carbonteq/fp library which is an internal library,
+## Domain-Driven Design Layers
 
-first see how i have implement existing domain files and then improve on it
+### Domain Layer
 
-for example, domain entity and repo should purely accepts and return entity or value object not custom types
-each repo should only deal with one entity, unless it is an aggregate repo where we have more flexibility.
+Located in `src/domain`, this layer encapsulates the core business logic, entities, and rules:
 
-all of the entities should inherit form base entities.
+- **Entities** (`*.entity.ts`): Rich domain models that represent business objects (e.g., User, Document, AccessControlEntry).
+- **Repositories** (`*.repository.ts`): Interfaces defining persistence operations for each aggregate.
+- **Guards** (`*.guards.ts`): Domain invariants and preconditions enforcement.
+- **Errors** (`*.errors.ts`): Domain-specific error classes.
+- **Utilities** in `src/domain/utils`: Base classes and shared types for entities and repositories.
 
-use factory create method for entities
+### Application Layer
 
-all validation should happen inside the `create` method using a class called UserGuards, or DocumentGuards etc, so validation logic should live there
+Located in `src/app`, this layer contains the application services (use-cases) that orchestrate domain operations. It implements business workflows by combining domain entities, repositories, and guards.
 
-the nullable properties should be explicitly typed
+### Infrastructure Layer
 
-see this reference example
-```
-mport { BaseEntity, IEntity } from "@domain/utils/base.entity";
-import { UUID } from "@domain/utils/refined.types";
-import { Address } from "./address.vo";
-import { SocialLinks } from "./socialLinks.vo";
-import { Option as O } from "effect";
+Located in `src/infra`, this layer provides concrete implementations for external concerns:
 
-// Collapsed Maybe type definition
-type Maybe<T> = T | O.Option<T> | null | undefined;
+- **DI Container** (`container.ts`): Sets up `tsyringe` to wire up services and repositories.
+- **Environment** (`env.ts`): Loads and validates environment variables.
+- **Database Client** (`database/client.ts`): Drizzle ORM client configuration for PostgreSQL.
+- **Repositories** (`repositories/pg`): PostgreSQL implementations of domain repository interfaces.
+- **Low-level Services** (`services`): Cross-cutting services (e.g., authorization, presigned URL generation).
 
-// Collapsed normalizeMaybe utility
-const normalizeMaybe = <T>(value: Maybe<T>): O.Option<T> => {
-  if (value === null || value === undefined) {
-    return O.none();
-  }
-  if (O.isOption(value)) {
-    return value;
-  }
-  return O.some(value);
-};
+### Presentation Layer
 
-// Collapsed optionToMaybe utility
-const optionToMaybe = <T>(option: O.Option<T>): Maybe<T> => {
-  return O.getOrNull(option) as Maybe<T>;
-};
+Located in `src/presentation`, this layer handles HTTP interactions and API contract enforcement:
 
-// Collapsed IHost interface
-interface IHost extends IEntity {
-  readonly userId: UUID;
-  readonly dob: O.Option<Date>;
-  readonly phoneNumber: O.Option<number>;
-  readonly profileImage: O.Option<string>;
-}
+- **Contracts** (`contracts/*.ts`): Type-safe API schemas powered by `@ts-rest`.
+- **Controllers** (`controllers/*.controller.ts`): Implementation matching each contract operation, delegating to application services.
+- **DTOs** (`dtos/*.ts`): Data transfer objects for request/response shapes.
+- **OpenAPI** (`openapi/index.ts`): Generates Swagger/OpenAPI JSON and HTML UI.
+- **App Setup** (`app.ts`): Express application instantiation, global middleware, health checks, docs routes, and TS-Rest route registration.
 
-// Collapsed SerializedHost type
-type SerializedHost = {
-  id: string;
-  createdAt: string;
-  updatedAt: string;
-  userId: string;
-  dob: Maybe<Date>;
-  phoneNumber: Maybe<number>;
-  profileImage: Maybe<string>;
-  address: unknown;
-  socialLinks: unknown;
-}
+### Utilities
 
-export class Host extends BaseEntity implements IHost {
+Shared helpers and mappers in `src/utils` and `src/presentation/utils`:
 
-  // Collapsed class properties
-  userId: UUID;
-  dob: O.Option<Date>;
-  phoneNumber: O.Option<number>;
-  profileImage: O.Option<string>;
-  address: Address;
-  socialLinks: SocialLinks;
-  
-  private constructor(data: SerializedHost, address: Address, socialLinks: SocialLinks) {
+- `http-mapper.ts`, `result-match.ts`: Helpers to translate service results into HTTP responses.
+- Contract/DTO helpers for TS-Rest and plain JavaScript objects.
 
-    // Collapsed constructor implementation with validation
-    super();
-    this._fromSerialized({
-      id: data.id,
-      createdAt: data.createdAt,
-      updatedAt: data.updatedAt
-    });
-    
-    const normalizedDob = normalizeMaybe(data.dob);
-    const normalizedPhone = normalizeMaybe(data.phoneNumber);
-    
-    if (!Host.validateDateOfBirth(normalizedDob)) {
-      throw new Error('Invalid date of birth');
-    }
-    if (!Host.validatePhoneNumber(normalizedPhone)) {
-      throw new Error('Invalid phone number');
-    }
-    
-    this.userId = data.userId as UUID;
-    this.dob = normalizedDob;
-    this.phoneNumber = normalizedPhone;
-    this.profileImage = normalizeMaybe(data.profileImage);
-    this.address = address;
-    this.socialLinks = socialLinks;
-  } 
-  
-  static create(serialized: SerializedHost): Host {
+## Dependency Injection
 
-Controlled entity creation through factory method
-    // Create value objects first
-    const address = Address.create(serialized.address);
-    const socialLinks = SocialLinks.create(serialized.socialLinks);
-    
-    // Validate and create host
-    return new Host(serialized, address, socialLinks); 
-  }
+The project uses `tsyringe` to manage dependencies. The DI container is configured in `src/infra/container.ts`, where implementations are registered against domain interfaces. This enables loose coupling and easy testing.
 
-  // Collapsed validation guards
-  private static validatePhoneNumber(phone: O.Option<number>): boolean {
-    return O.match(phone, {
-      onNone: () => true,
-      onSome: (num) => num > 1000000000 && num < 9999999999
-    });
-  }
-  
-  private static validateDateOfBirth(dob: O.Option<Date>): boolean {
-    return O.match(dob, {
-      onNone: () => true,
-      onSome: (date) => date < new Date() && date > new Date('1900-01-01')
-    });
-  }
+## Database Configuration
 
-  // Collapsed serialize method
-  serialize(): SerializedHost {
-    return {
-      ...this._serialize(),
-      userId: this.userId,
-      dob: optionToMaybe(this.dob),
-      phoneNumber: optionToMaybe(this.phoneNumber),
-      profileImage: optionToMaybe(this.profileImage),
-      address: this.address.serialize(),
-      socialLinks: this.socialLinks.serialize()
-    };
-  }
+Configuration for migrations and schema is defined in `drizzle.config.js`. The database models (Drizzle schema definitions) live under `src/infra/database/models`.
 
-  // Collapsed computed property
-  get hasCompleteProfile(): boolean {
-    return O.isSome(this.dob) && 
-           O.isSome(this.phoneNumber) && 
-           O.isSome(this.profileImage);
-  }
+## OpenAPI & Routing (TS-Rest)
+
+API contracts are declared with `@ts-rest/core` and exposed via Express using `@ts-rest/express`. The OpenAPI specification is generated automatically, and Swagger UI is served under `/docs`.
+
+## Scripts & Tooling
+
+Scripts defined in `package.json`:
+
+```json
+{
+  "dev": "tsx --watch --env-file=.env src/main.ts serve",
+  "start": "tsx src/main.ts serve",
+  "db:generate": "drizzle-kit generate",
+  "db:migrate": "drizzle-kit migrate",
+  "db:push": "drizzle-kit push",
+  "db:studio": "drizzle-kit studio --verbose"
 }
 ```
 
-also when you make these changes to domain, some things in server/src/app would break, and you need to fix it as well especially the types and some other implementation,
+- **Formatter**: Biome.js for code formatting (`pnpm exec biome format --write`).
 
-when you feel like you are done, do link by running commands in the `server` directory
+## Domain Overview
 
-like
+At the heart of the DMS domain are **documents**, **users**, and **access control entries**. We apply
+Domain-Driven Design (DDD) principles to structure our code and enforce business invariants.
 
-`pnpm tsx --noEmit` and `pnpm biome lint .`
+### Core Entities
+
+- **User**: Represents a system user with credentials and identity.
+- **Document**: Represents a file or content artifact that can be uploaded, versioned, and shared.
+- **AccessControlEntry**: Represents a permission grant (viewer, editor, owner) linking a user to a document.
+
+### Value Objects & Primitives
+
+We use refined primitives and value objects for strong typing and validation:
+
+- **ULID**: Globally unique identifier for entities.
+- **DateTime**: ISO8601 timestamp for creation and update fields.
+- **Email**: Branded types for user email and other identifiers.
+
+### Aggregates & Repositories
+
+Each aggregate has a single root entity and a repository interface:
+
+- **UserRepository**: CRUD operations for users.
+- **DocumentRepository**: Search, retrieve, create, and update documents with pagination support.
+- **AclRepository**: Manage permission grants (create, retrieve, revoke).
+
+Repositories hide persistence details and expose methods that operate on domain entities.
+
+## Domain Rules & Validation Guards
+
+Domain guards enforce invariants at entity creation and updates:
+
+- **UserGuards**: Validate username and password hash formats.
+- **DocumentGuards**: Ensure non-empty title/content and valid version numbers.
+- **AclGuards**: Enforce allowed roles (`viewer`, `editor`, `owner`).
+
+Validation errors are represented by domain-specific error types (e.g., `DocumentValidationError`,
+`ACLEntryValidationError`) which capture the invalid input and a reason.
+
+## Domain Errors
+
+We classify errors to distinguish failure modes:
+
+- **ValidationError**: Invalid input or invariant violation.
+- **AlreadyExistsError**: Conflict when creating a resource that already exists.
+- **NotFoundError**: Attempt to retrieve a missing resource.
+- **AuthenticationError**, **UnknownError**: Cross-cutting errors.
+
+## Business Use Cases
+
+### User Management
+
+1. **Register User**: Create a new user with a unique username and hashed password.
+2. **Authenticate User**: Verify credentials and issue a session or token.
+3. **Update User**: Change username or password after validation.
+
+### Document Lifecycle
+
+1. **Create Document**: Upload new content, assign initial version and metadata.
+2. **Update Document**: Modify content or metadata, increment version.
+3. **Retrieve Document**: Fetch document details and content (or metadata only).
+4. **Search Documents**: List documents by filters (title, tags, author) with pagination.
+
+### Access Control
+
+1. **Grant Permission**: Assign a role for a user on a document (`viewer`, `editor`, `owner`).
+2. **Revoke Permission**: Remove a user's access to a document.
+3. **Check Permission**: Enforce permissions before document operations in application services.
+
+## Domain Constraints & Invariants
+
+- **Unique Username**: No two users may share the same username.
+- **Document Version Monotonicity**: Version numbers start at 1 and increment by 1 on updates.
+- **Non-Empty Content**: A document must have non-empty content and title.
+- **Valid Roles**: ACL roles must be one of the predefined set (`viewer`, `editor`, `owner`).
+- **Permission Enforcement**: Only users with appropriate roles can read or modify a document.
+
+## Intuition & Rationale
+
+By modeling our domain with strong types, guards, and dedicated repositories, we ensure that
+business rules are enforced consistently across the application. Aggregates encapsulate
+invariants and mutations, while application services orchestrate workflows (e.g., sharing a
+document or publishing a new version) without leaking persistence or transport concerns.
+
+This design promotes clarity, maintainability, and a ubiquitous language shared between
+developers and domain experts.
