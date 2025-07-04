@@ -7,7 +7,7 @@
 		"db:migrate": "drizzle-kit migrate",
 		"db:push": "drizzle-kit push",
 		"db:studio": "drizzle-kit studio --verbose",
-		"db:seed": "tsx --env-file=.env src/scripts/seed.ts"
+		"db:seed": "tsx --env-file=.env src/infra/scripts/seed.ts"
 	},
 	"dependencies": {
 		"@carbonteq/fp": "^0.8.2",
