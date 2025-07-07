@@ -1,29 +1,36 @@
-import { AlreadyExistsError, DomainError, NotFoundError, ValidationError } from '../errors/errors.base'
+import {
+	AlreadyExistsError,
+	GenericDomainError,
+	GuardViolationError,
+	InvalidOperation,
+	NotFoundError,
+	UnauthorizedOperation,
+	ValidationError,
+} from '@carbonteq/hexapp'
 
-// ACL Entry-specific Domain Error
-export class ACLEntryDomainError extends DomainError {
-	constructor(input: unknown, reason: string) {
-		super(`ACL Entry domain error: ${reason}, input: ${JSON.stringify(input)}`)
+export class AccessControlGenericDomainError extends GenericDomainError {}
+
+export class AccessControlNotFoundError extends NotFoundError {}
+
+export class AccessControlAlreadyExistsError extends AlreadyExistsError {}
+
+export class AccessControlUnauthorizedOperation extends UnauthorizedOperation {}
+export class AccessControlInvalidOperation extends InvalidOperation {}
+
+export class AccessControlValidationError extends ValidationError {
+	// biome-ignore lint/complexity/noUselessConstructor: Need to make the constructor public
+	public constructor(message: string) {
+		super(message)
 	}
 }
 
-// ACL Entry-specific Validation Error
-export class ACLEntryValidationError extends ValidationError {
-	constructor(input: unknown, reason: string) {
-		super(`ACL Entry validation error: ${reason}, input: ${JSON.stringify(input)}`)
-	}
-}
+export class AccessControlGuardViolationError extends GuardViolationError {}
 
-// ACL Entry Already Exists Error
-export class ACLEntryAlreadyExistsError extends AlreadyExistsError {
-	constructor(input: unknown) {
-		super(`ACL Entry already exists \nInput: ${JSON.stringify(input)}`)
-	}
-}
-
-// ACL Entry Not Found Error
-export class ACLEntryNotFoundError extends NotFoundError {
-	constructor(input: unknown) {
-		super(`ACL Entry not found \nInput: ${JSON.stringify(input)}`)
-	}
-}
+export type AccessControlDomainErr =
+	| AlreadyExistsError
+	| GenericDomainError
+	| InvalidOperation
+	| NotFoundError
+	| UnauthorizedOperation
+	| ValidationError
+	| GuardViolationError

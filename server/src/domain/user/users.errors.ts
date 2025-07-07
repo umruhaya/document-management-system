@@ -1,29 +1,36 @@
-import { AlreadyExistsError, DomainError, NotFoundError, ValidationError } from '../errors/errors.base'
+import {
+	AlreadyExistsError,
+	GenericDomainError,
+	GuardViolationError,
+	InvalidOperation,
+	NotFoundError,
+	UnauthorizedOperation,
+	ValidationError,
+} from '@carbonteq/hexapp'
 
-// User-specific Domain Error
-export class UserDomainError extends DomainError {
-	constructor(input: unknown, reason: string) {
-		super(`User domain error: ${reason}, input: ${JSON.stringify(input)}`)
-	}
-}
+export class UserGenericDomainError extends GenericDomainError {}
 
-// User-specific Validation Error
+export class UserNotFoundError extends NotFoundError {}
+
+export class UserAlreadyExistsError extends AlreadyExistsError {}
+
+export class UserUnauthorizedOperation extends UnauthorizedOperation {}
+export class UserInvalidOperation extends InvalidOperation {}
+
 export class UserValidationError extends ValidationError {
-	constructor(input: unknown, reason: string) {
-		super(`User validation error: ${reason}, input: ${JSON.stringify(input)}`)
+	// biome-ignore lint/complexity/noUselessConstructor: Need to make the constructor public
+	public constructor(message: string) {
+		super(message)
 	}
 }
 
-// User Already Exists Error
-export class UserAlreadyExistsError extends AlreadyExistsError {
-	constructor(input: unknown) {
-		super(`User already exists \nInput: ${JSON.stringify(input)}`)
-	}
-}
+export class UserGuardViolationError extends GuardViolationError {}
 
-// User Not Found Error
-export class UserNotFoundError extends NotFoundError {
-	constructor(input: unknown) {
-		super(`User not found \nInput: ${JSON.stringify(input)}`)
-	}
-}
+export type UserDomainErr =
+	| AlreadyExistsError
+	| GenericDomainError
+	| InvalidOperation
+	| NotFoundError
+	| UnauthorizedOperation
+	| ValidationError
+	| GuardViolationError
