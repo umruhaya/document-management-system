@@ -1,12 +1,15 @@
-import type { Result } from '@carbonteq/fp'
+import {
+	type AlreadyExistsError,
+	type BaseEntity,
+	BaseRepository,
+	type NotFoundError,
+	type RepositoryResult,
+} from '@carbonteq/hexapp'
 import type { UserEntity } from './user.entity'
 
-/** Repository interface for UserEntity */
-export abstract class UserRepository {
-	abstract getById(userId: string): Promise<Result<UserEntity, Error>>
-	abstract getByUsername(username: string): Promise<Result<UserEntity, Error>>
-	abstract create(input: { id: string; username: string; hashedPassword: string }): Promise<Result<UserEntity, Error>>
-	abstract update(
-		user: { id: string } & Partial<{ username: string; hashedPassword: string }>,
-	): Promise<Result<true, Error>>
+export abstract class UserRepository extends BaseRepository<UserEntity> {
+	abstract insert(entity: UserEntity): Promise<RepositoryResult<UserEntity, AlreadyExistsError>>
+	abstract update(entity: UserEntity): Promise<RepositoryResult<UserEntity, NotFoundError>>
+	abstract fetchById(userId: BaseEntity['id']): Promise<RepositoryResult<UserEntity, NotFoundError>>
+	abstract fetchByUsername(userId: BaseEntity['id']): Promise<RepositoryResult<UserEntity, NotFoundError>>
 }

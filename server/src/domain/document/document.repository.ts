@@ -1,26 +1,29 @@
-import type { Result } from '@carbonteq/fp'
-import type { DocumentEntity, SerializedDocument } from '~/domain/document/document.entity'
-import type { PaginatedCollection, PaginationOptions } from '~/presentation/types'
+import {
+	type AlreadyExistsError,
+	type BaseEntity,
+	BaseRepository,
+	type InvalidOperation,
+	type NotFoundError,
+	type Paginated,
+	type PaginationOptions,
+	type RepositoryResult,
+} from '@carbonteq/hexapp'
+import type { DocumentEntity } from '~/domain/document/document.entity'
 
-export abstract class DocumentRepository {
+export abstract class DocumentRepository extends BaseRepository<DocumentEntity> {
+	abstract insert(entity: DocumentEntity): Promise<RepositoryResult<DocumentEntity, AlreadyExistsError>>
+	abstract update(entity: DocumentEntity): Promise<RepositoryResult<DocumentEntity, NotFoundError>>
+	abstract fetchById(documentId: BaseEntity['id']): Promise<RepositoryResult<DocumentEntity, NotFoundError>>
+
+	abstract insertWithAccessControl(
+		userId: string,
+		entity: DocumentEntity,
+	): Promise<RepositoryResult<DocumentEntity, AlreadyExistsError>>
+
 	abstract search(
 		userId: string,
-		option: PaginationOptions<{
-			title?: string
-			fileType?: string
-			sort?: string
-			tags?: string[]
-			version?: number
-			author?: string
-			exlcudeContent?: 'true'
-		}>,
-	): Promise<Result<PaginatedCollection<DocumentEntity>, Error>>
-	abstract getById(documentId: string): Promise<Result<DocumentEntity, Error>>
-	abstract create(
-		userId: string,
-		document: Omit<SerializedDocument, 'createdAt' | 'updatedAt'>,
-	): Promise<Result<DocumentEntity, Error>>
-	abstract update(
-		document: { id: string } & Partial<Omit<DocumentEntity, 'createdAt' | 'updatedAt'>>,
-	): Promise<Result<true, Error>>
+		filters: Pick<DocumentEntity, 'title' | 'fileType' | 'tags' | 'version'>,
+		searchOptions: { exlcudeContent: boolean },
+		paginationOptions: PaginationOptions,
+	): Promise<RepositoryResult<Paginated<DocumentEntity>, InvalidOperation>>
 }
