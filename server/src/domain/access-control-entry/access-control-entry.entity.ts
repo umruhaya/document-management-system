@@ -1,69 +1,63 @@
 import type { Result } from '@carbonteq/fp'
-import { BaseEntity, type IEntity } from '~/domain/utils/base.entity'
-import type { ULID } from '~/domain/utils/refined.types'
-import { parseULID } from '~/domain/utils/refined.types'
-import { AclGuards } from './acl.guards'
+import { BaseEntity, type DateTime, UUID } from '@carbonteq/hexapp'
+import { AccessControlGuards } from './acl.guards'
 
 /** Allowed roles for document access */
 export type DocumentRole = 'viewer' | 'editor' | 'owner'
 
-export interface SerializedAcl {
+export interface IAccessControlEntity {
+	readonly id: UUID
+	readonly createdAt: DateTime
+	readonly updatedAt: DateTime
+	readonly documentId: UUID
+	readonly userId: UUID
+	readonly role: DocumentRole
+}
+
+export interface SerializedAccessControl {
 	id: string
-	createdAt: string
-	updatedAt: string
+	createdAt: Date
+	updatedAt: Date
 	documentId: string
 	userId: string
 	role: DocumentRole
 }
 
 /** ACL domain model */
-export class AccessControlListEntity extends BaseEntity implements IEntity {
-	readonly documentId: ULID
-	readonly userId: ULID
+export class AccessControlEntity extends BaseEntity implements IAccessControlEntity {
+	readonly documentId: UUID
+	readonly userId: UUID
 	readonly role: DocumentRole
 
-	private constructor(data: SerializedAcl) {
+	private constructor(data: Omit<SerializedAccessControl, 'id' | 'createdAt' | 'updatedAt'>) {
 		super()
-		this._fromSerialized({ id: data.id as ULID, createdAt: data.createdAt, updatedAt: data.updatedAt })
-		this.documentId = data.documentId as ULID
-		this.userId = data.userId as ULID
+		// since we are validating uuid in create methods and guards, the `data` is trusted to have valid UUID fields
+		this.documentId = UUID.fromTrusted(data.documentId)
+		this.userId = data.userId = UUID.fromTrusted(data.userId)
 		this.role = data.role
 	}
 
 	/** Factory for ACL entry with validation */
-	/**
-	 * Create an ACL entry from raw data (string IDs), performing ULID parsing
-	 * and domain-level validation.
-	 */
-	/**
-	 * Create an ACL entry from raw IDs, parsing them and validating domain rules.
-	 */
 	static create(
-		input: Omit<SerializedAcl, 'createdAt' | 'updatedAt'> & {
-			createdAt?: string
-			updatedAt?: string
-		},
-	): Result<AccessControlListEntity, Error> {
-		const now = new Date().toISOString()
-		return parseULID(input.id).flatMap((id) =>
-			parseULID(input.documentId).flatMap((did) =>
-				parseULID(input.userId).flatMap((uid) => {
-					const serialized: SerializedAcl = {
-						id,
-						createdAt: input.createdAt ?? now,
-						updatedAt: input.updatedAt ?? now,
-						documentId: did,
-						userId: uid,
-						role: input.role,
-					}
-					return AclGuards.validateCreate(serialized).map(() => new AccessControlListEntity(serialized))
-				}),
-			),
-		)
+		input: Omit<SerializedAccessControl, 'id' | 'createdAt' | 'updatedAt'>,
+	): Result<AccessControlEntity, Error> {
+		return AccessControlGuards.validateCreate(input).map(() => new AccessControlEntity(input))
+	}
+
+	/** Static factory from serialized (Reconstitution) */
+	static fromSerialized(obj: SerializedAccessControl): Result<AccessControlEntity, Error> {
+		return AccessControlGuards.validateReconstitution(obj)
+			.map(() => new AccessControlEntity(obj))
+			.map((acl) => acl._fromSerialized(obj))
 	}
 
 	/** Convert to plain object */
-	serialize(): SerializedAcl {
-		return { ...this._serialize(), documentId: String(this.documentId), userId: this.userId, role: this.role }
+	serialize(): SerializedAccessControl {
+		return {
+			...this._serialize(),
+			documentId: this.documentId,
+			userId: this.userId,
+			role: this.role,
+		}
 	}
 }

@@ -1,62 +1,53 @@
 import type { Result } from '@carbonteq/fp'
+import { BaseEntity, type DateTime, type UUID } from '@carbonteq/hexapp'
 import type { UserValidationError } from '~/domain/user/users.errors'
-import { BaseEntity, type IEntity } from '~/domain/utils/base.entity'
-import { parseULID, type ULID } from '~/domain/utils/refined.types'
 import { UserGuards } from './user.guards'
 
+export interface IUserEntity {
+	readonly id: UUID
+	readonly createdAt: DateTime
+	readonly updatedAt: DateTime
+	readonly username: string
+	readonly hashedPassword: string
+}
+
 export interface SerializedUser {
-	/** ULID identifier */
-	id: string
-	createdAt: string
-	updatedAt: string
-	username: string
-	hashedPassword: string
+	readonly id: string
+	readonly createdAt: Date
+	readonly updatedAt: Date
+	readonly username: string
+	readonly hashedPassword: string
 }
 
 /** User domain model */
-export class UserEntity extends BaseEntity implements IEntity {
+export class UserEntity extends BaseEntity implements IUserEntity {
 	readonly username: string
 	readonly hashedPassword: string
 
-	private constructor(data: SerializedUser) {
+	private constructor(data: Pick<IUserEntity, 'username' | 'hashedPassword'>) {
 		super()
-		this._fromSerialized({
-			id: data.id as ULID,
-			createdAt: data.createdAt,
-			updatedAt: data.updatedAt,
-		})
-
 		this.username = data.username
 		this.hashedPassword = data.hashedPassword
 	}
 
-	/** Factory method for creating a user with validation */
-	static create(input: {
-		id: string
-		username: string
-		hashedPassword: string
-		createdAt?: string
-		updatedAt?: string
-	}): Result<UserEntity, UserValidationError | Error> {
-		const now = new Date().toISOString()
-		return parseULID(input.id).flatMap((id) => {
-			const serialized: SerializedUser = {
-				id,
-				createdAt: input.createdAt ?? now,
-				updatedAt: input.updatedAt ?? now,
-				username: input.username,
-				hashedPassword: input.hashedPassword,
-			}
-			return UserGuards.validateCreate(serialized).map(() => new UserEntity(serialized))
-		})
-	}
-
-	/** Serialize the entity into plain object */
-	serialize() {
+	/** Serialize the entity into plain JS object */
+	serialize(): SerializedUser {
 		return {
 			...this._serialize(),
 			username: this.username,
 			hashedPassword: this.hashedPassword,
 		}
+	}
+
+	/** Static factory (Creation) */
+	static create(obj: Omit<SerializedUser, 'id' | 'createdAt' | 'updatedAt'>): Result<UserEntity, UserValidationError> {
+		return UserGuards.validateCreate(obj).map(() => new UserEntity(obj))
+	}
+
+	/** Static factory from serialized (Reconstituion) */
+	static fromSerialized(obj: SerializedUser): Result<UserEntity, UserValidationError> {
+		return UserGuards.validateReconstitution(obj)
+			.map(() => new UserEntity(obj))
+			.map((user) => user._fromSerialized(obj))
 	}
 }
