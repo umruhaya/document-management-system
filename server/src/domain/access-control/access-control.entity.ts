@@ -1,6 +1,6 @@
 import type { Result } from '@carbonteq/fp'
 import { BaseEntity, type DateTime, UUID } from '@carbonteq/hexapp'
-import { AccessControlGuards } from './acl.guards'
+import { AccessControlGuards } from './access-control.guards'
 
 /** Allowed roles for document access */
 export type DocumentRole = 'viewer' | 'editor' | 'owner'

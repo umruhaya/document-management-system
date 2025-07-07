@@ -1,7 +1,7 @@
 import { Result } from '@carbonteq/fp'
 import { z } from 'zod'
-import { AccessControlValidationError } from '~/domain/access-control-entry/acl.errors'
-import type { SerializedAccessControl } from './access-control-entry.entity'
+import { AccessControlValidationError } from '~/domain/access-control/access-control.errors'
+import type { SerializedAccessControl } from './access-control.entity'
 
 const aclSchema = z.object({
 	documentId: z.string(),

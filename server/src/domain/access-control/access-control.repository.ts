@@ -5,7 +5,7 @@ import {
 	type NotFoundError,
 	type RepositoryResult,
 } from '@carbonteq/hexapp'
-import type { AccessControlEntity } from './access-control-entry.entity'
+import type { AccessControlEntity } from './access-control.entity'
 
 export abstract class AccessControlRepository extends BaseRepository<AccessControlEntity> {
 	abstract insert(entity: AccessControlEntity): Promise<RepositoryResult<AccessControlEntity, AlreadyExistsError>>
