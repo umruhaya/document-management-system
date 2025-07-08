@@ -8,14 +8,39 @@ import {
 	ValidationError,
 } from '~/hexapp'
 
-export class DocumentGenericDomainError extends GenericDomainError {}
+export class DocumentGenericDomainError extends GenericDomainError {
+	// biome-ignore lint/complexity/noUselessConstructor: Need to make the constructor public
+	public constructor(message: string) {
+		super(message)
+	}
+}
 
-export class DocumentNotFoundError extends NotFoundError {}
+export class DocumentNotFoundError extends NotFoundError {
+	// biome-ignore lint/complexity/noUselessConstructor: Need to make the constructor public
+	public constructor(message: string) {
+		super(message)
+	}
+}
 
-export class DocumentAlreadyExistsError extends AlreadyExistsError {}
+export class DocumentAlreadyExistsError extends AlreadyExistsError {
+	// biome-ignore lint/complexity/noUselessConstructor: Need to make the constructor public
+	public constructor(message: string) {
+		super(message)
+	}
+}
 
-export class DocumentUnauthorizedOperation extends UnauthorizedOperation {}
-export class DocumentInvalidOperation extends InvalidOperation {}
+export class DocumentUnauthorizedOperation extends UnauthorizedOperation {
+	// biome-ignore lint/complexity/noUselessConstructor: Need to make the constructor public
+	public constructor(message: string) {
+		super(message)
+	}
+}
+export class DocumentInvalidOperation extends InvalidOperation {
+	// biome-ignore lint/complexity/noUselessConstructor: Need to make the constructor public
+	public constructor(message: string) {
+		super(message)
+	}
+}
 
 export class DocumentValidationError extends ValidationError {
 	// biome-ignore lint/complexity/noUselessConstructor: Need to make the constructor public
