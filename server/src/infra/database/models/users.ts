@@ -7,8 +7,8 @@ export const users = pgTable(
 		id: varchar('id', { length: len.ID }).primaryKey(),
 		username: varchar('username', { length: len.MEDIUM }).notNull(),
 		hashedPassword: varchar('hashed_password', { length: len.MEDIUM }).notNull(),
-		createdAt: timestamp('created_at', { mode: 'string' }).defaultNow().notNull(),
-		updatedAt: timestamp('updated_at', { mode: 'string' }).defaultNow().notNull(),
+		createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+		updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().notNull(),
 	},
 	(table) => [index().on(table.username), unique().on(table.username)],
 )

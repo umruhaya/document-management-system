@@ -10,8 +10,8 @@ export const documents = pgTable('documents', {
 	size: integer('size_bytes').notNull(),
 	content: text('content').notNull(),
 	tags: varchar('tags', { length: len.MEDIUM }).array().notNull(),
-	createdAt: timestamp('created_at', { mode: 'string' }).defaultNow().notNull(),
-	updatedAt: timestamp('updated_at', { mode: 'string' }).defaultNow().notNull(),
+	createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+	updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().notNull(),
 })
 
 export type DocumentsSelect = typeof documents.$inferSelect

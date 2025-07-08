@@ -2,88 +2,32 @@ import { Result } from '@carbonteq/fp'
 import { eq } from 'drizzle-orm'
 import { PostgresError } from 'pg-error-enum'
 import { injectable } from 'tsyringe'
-import { UnknownError, UserAlreadyExistsError, UserNotFoundError } from '~/domain/errors'
 import { UserEntity } from '~/domain/user/user.entity'
 import { UserRepository } from '~/domain/user/user.repository'
+import { UserAlreadyExistsError, UserNotFoundError } from '~/domain/user/users.errors'
+import type { AlreadyExistsError, NotFoundError, RepositoryResult } from '~/hexapp'
 import { DatabaseError, db, table } from '~/infra/database/client'
 import { TryCatchAsync } from '~/utils/trycatch'
 
 @injectable()
 export class UserRepositoryPg extends UserRepository {
-	getById(userId: string): Promise<Result<UserEntity, Error>> {
-		return TryCatchAsync({
+	insert(user: UserEntity): Promise<RepositoryResult<UserEntity, AlreadyExistsError>> {
+		const abc = TryCatchAsync({
 			fn: async () => {
-				const user = await db
-					.select()
-					.from(table.users)
-					.where(eq(table.users.id, userId))
-					.execute()
-					.then((r) => r.at(0))
-				return user
-					? UserEntity.create({
-							...user,
-							createdAt: new Date(user.createdAt).toISOString(),
-							updatedAt: new Date(user.updatedAt).toISOString(),
-						})
-					: Result.Err(new UserNotFoundError({ userId }))
+				await db.insert(table.users).values(user.serialize())
+				return Result.Ok(user)
 			},
-			onError: (error) => Result.Err(new UnknownError(`Error: ${error}`, 'Failed user.get')),
-		})
-	}
-
-	getByUsername(username: string): Promise<Result<UserEntity, Error>> {
-		return TryCatchAsync({
-			fn: async () => {
-				const user = await db
-					.select()
-					.from(table.users)
-					.where(eq(table.users.username, username))
-					.execute()
-					.then((r) => r.at(0))
-				return user
-					? UserEntity.create({
-							...user,
-							createdAt: new Date(user.createdAt).toISOString(),
-							updatedAt: new Date(user.updatedAt).toISOString(),
-						})
-					: Result.Err(new UserNotFoundError({ username }))
-			},
-			onError: (error) => Result.Err(new UnknownError(`Error: ${error}`, 'Failed user.get')),
-		})
-	}
-
-	create(input: Pick<UserEntity, 'id' | 'username' | 'hashedPassword'>): Promise<Result<UserEntity, Error>> {
-		return TryCatchAsync({
-			fn: async () => {
-				// build entity and persist
-				const now = new Date().toISOString()
-				const serialized = {
-					id: input.id,
-					createdAt: now,
-					updatedAt: now,
-					username: input.username,
-					hashedPassword: input.hashedPassword,
+			onError: (error) => {
+				if (error instanceof DatabaseError && error.code === PostgresError.UNIQUE_VIOLATION) {
+					return Result.Err(new UserAlreadyExistsError('User Already Exists'))
 				}
-				const entityRes = UserEntity.create(serialized)
-				if (entityRes.isErr()) {
-					return Result.Err(entityRes.unwrapErr())
-				}
-				const entity = entityRes.unwrap()
-				await db.insert(table.users).values({ ...entity.serialize() })
-				return Result.Ok(entity)
+				return Result.Err(new Error(JSON.stringify(error)))
 			},
-			onError: (error) =>
-				Result.Err(
-					error instanceof DatabaseError && error.code === PostgresError.UNIQUE_VIOLATION
-						? new UserAlreadyExistsError({ userId: input.id })
-						: new UnknownError(`User Insert Failed With values ${JSON.stringify(input)}`, 'Failed user.create'),
-				),
 		})
+		return abc
 	}
 
-	update(
-		user: Partial<Pick<UserEntity, 'username' | 'hashedPassword'>> & { id: string },
-	): Promise<Result<true, Error>> {
+	update(user: UserEntity): Promise<RepositoryResult<UserEntity, NotFoundError>> {
 		return TryCatchAsync({
 			fn: async () => {
 				const updatedUser = await db
@@ -94,17 +38,46 @@ export class UserRepositoryPg extends UserRepository {
 					.execute()
 					.then((r) => r.at(0))
 				if (updatedUser === undefined) {
-					return Result.Err(new UserNotFoundError({ userId: user.id }))
+					return Result.Err(new UserNotFoundError(`No User Exists with ID: ${user.id}`))
 				}
-				return Result.Ok(true)
+				return Result.Ok(user)
 			},
 			onError: (error) =>
-				Result.Err(
-					new UnknownError(
-						`User Update Failed With values ${JSON.stringify(user)}, Details: ${error}`,
-						'Failed user.update',
-					),
-				),
+				Result.Err(new Error(`User Update Failed With values ${JSON.stringify(user)}, Details: ${error}`)),
+		})
+	}
+
+	fetchById(userId: UserEntity['id']): Promise<RepositoryResult<UserEntity, NotFoundError>> {
+		return TryCatchAsync({
+			fn: async () => {
+				const user = await db
+					.select()
+					.from(table.users)
+					.where(eq(table.users.id, userId))
+					.execute()
+					.then((r) => r.at(0))
+				return user
+					? UserEntity.fromSerialized(user)
+					: Result.Err(new UserNotFoundError(`No User Exists with ID: ${userId}`))
+			},
+			onError: (error) => Result.Err(new Error(JSON.stringify(error))),
+		})
+	}
+
+	fetchByUsername(username: UserEntity['username']): Promise<RepositoryResult<UserEntity, NotFoundError>> {
+		return TryCatchAsync({
+			fn: async () => {
+				const user = await db
+					.select()
+					.from(table.users)
+					.where(eq(table.users.username, username))
+					.execute()
+					.then((r) => r.at(0))
+				return user
+					? UserEntity.fromSerialized(user)
+					: Result.Err(new UserNotFoundError(`No User Exists with Username: ${username}`))
+			},
+			onError: (error) => Result.Err(new Error(JSON.stringify(error))),
 		})
 	}
 }
