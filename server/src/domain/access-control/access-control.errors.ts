@@ -6,7 +6,7 @@ import {
 	NotFoundError,
 	UnauthorizedOperation,
 	ValidationError,
-} from '@carbonteq/hexapp'
+} from '~/hexapp'
 
 export class AccessControlGenericDomainError extends GenericDomainError {}
 

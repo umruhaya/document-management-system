@@ -1,3 +1,4 @@
+import type { DocumentEntity } from '~/domain/document/document.entity'
 import {
 	type AlreadyExistsError,
 	type BaseEntity,
@@ -7,8 +8,7 @@ import {
 	type Paginated,
 	type PaginationOptions,
 	type RepositoryResult,
-} from '@carbonteq/hexapp'
-import type { DocumentEntity } from '~/domain/document/document.entity'
+} from '~/hexapp'
 
 export abstract class DocumentRepository extends BaseRepository<DocumentEntity> {
 	abstract insert(entity: DocumentEntity): Promise<RepositoryResult<DocumentEntity, AlreadyExistsError>>

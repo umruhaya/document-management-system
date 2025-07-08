@@ -1,5 +1,5 @@
 import type { Result } from '@carbonteq/fp'
-import { BaseEntity, type DateTime, type UUID } from '@carbonteq/hexapp'
+import { BaseEntity, type DateTime, type UUID } from '~/hexapp'
 import { DocumentGuards } from './document.guards'
 
 export interface IDocumentEntity {

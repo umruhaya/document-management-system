@@ -1,5 +1,5 @@
 import type { Result } from '@carbonteq/fp'
-import { BaseEntity, type DateTime, UUID } from '@carbonteq/hexapp'
+import { BaseEntity, type DateTime, UUID } from '~/hexapp'
 import { AccessControlGuards } from './access-control.guards'
 
 /** Allowed roles for document access */

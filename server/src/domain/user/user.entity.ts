@@ -1,6 +1,6 @@
 import type { Result } from '@carbonteq/fp'
-import { BaseEntity, type DateTime, type UUID } from '@carbonteq/hexapp'
 import type { UserValidationError } from '~/domain/user/users.errors'
+import { BaseEntity, type DateTime, type UUID } from '~/hexapp'
 import { UserGuards } from './user.guards'
 
 export interface IUserEntity {

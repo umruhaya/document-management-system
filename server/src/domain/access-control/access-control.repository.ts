@@ -4,7 +4,7 @@ import {
 	type InvalidOperation,
 	type NotFoundError,
 	type RepositoryResult,
-} from '@carbonteq/hexapp'
+} from '~/hexapp'
 import type { AccessControlEntity } from './access-control.entity'
 
 export abstract class AccessControlRepository extends BaseRepository<AccessControlEntity> {
