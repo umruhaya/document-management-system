@@ -10,7 +10,7 @@
 		"db:seed": "tsx --env-file=.env src/infra/scripts/seed.ts"
 	},
 	"dependencies": {
-		"@carbonteq/fp": "^0.8.2",
+		"@carbonteq/fp": "^0.8.1",
 		"@hono/swagger-ui": "^0.5.2",
 		"@ts-rest/core": "^3.52.1",
 		"@ts-rest/express": "^3.52.1",
@@ -25,10 +25,12 @@
 		"pg-error-enum": "^1.0.2",
 		"postgres": "^3.4.7",
 		"reflect-metadata": "^0.2.2",
+		"ts-pattern": "^5.7.1",
 		"tsyringe": "^4.10.0",
 		"ulidx": "^2.4.1",
 		"winston": "^3.17.0",
-		"zod": "^3.25.64"
+		"zod": "^3.25.64",
+		"zod-validation-error": "^3.4.1"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.0.0",

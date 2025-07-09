@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@carbonteq/fp':
-        specifier: ^0.8.2
-        version: 0.8.2
+        specifier: ^0.8.1
+        version: 0.8.1
       '@hono/swagger-ui':
         specifier: ^0.5.2
         version: 0.5.2(hono@4.8.0)
@@ -53,6 +53,9 @@ importers:
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
+      ts-pattern:
+        specifier: ^5.7.1
+        version: 5.7.1
       tsyringe:
         specifier: ^4.10.0
         version: 4.10.0
@@ -65,6 +68,9 @@ importers:
       zod:
         specifier: ^3.25.64
         version: 3.25.67
+      zod-validation-error:
+        specifier: ^3.4.1
+        version: 3.5.2(zod@3.25.67)
     devDependencies:
       '@biomejs/biome':
         specifier: 2.0.0
@@ -146,8 +152,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@carbonteq/fp@0.8.2':
-    resolution: {integrity: sha512-TgygpDhBb0D05xskb1GWpjE0gDioq7nfD1unSu2/DQatq5iq6LnSLt/+3CmdmcZ/6BMI1ehDrvJTt+T9c/ThOA==}
+  '@carbonteq/fp@0.8.1':
+    resolution: {integrity: sha512-3MEBjJYbS7zYRbjOU9DM8n69nEhCDB5oUQOsgnz7uLul7QJ8Wrk5PaGrwBehAXuBKLKrKbtrkhcBL0vZTVXoEw==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0', yarn: '>=1.22.0'}
 
   '@colors/colors@1.6.0':
@@ -1076,6 +1082,9 @@ packages:
     resolution: {integrity: sha512-8CYSLazCyj0DJDpPIxOFzJG46r93uh6EynYjuey+bxcLltBeqZL7DMfaE5ZPzZNFlav7wx+2TDa/mBl8gkTYzw==}
     engines: {node: '>=14.13.1'}
 
+  ts-pattern@5.7.1:
+    resolution: {integrity: sha512-EGs8PguQqAAUIcQfK4E9xdXxB6s2GK4sJfT/vcc9V1ELIvC4LH/zXu2t/5fajtv6oiRCxdv7BgtVK3vWgROxag==}
+
   tslib@1.14.1:
     resolution: {integrity: sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==}
 
@@ -1125,6 +1134,12 @@ packages:
     resolution: {integrity: sha512-r3vXyErRCYJ7wg28yvBY5VSoAF8ZvlcW9/BwUzEtUsjvX/DKs24dIkuwjtuprwJJHsbyUbLApepYTR1BN4uHrg==}
     engines: {node: '>= 6'}
 
+  zod-validation-error@3.5.2:
+    resolution: {integrity: sha512-mdi7YOLtram5dzJ5aDtm1AG9+mxRma1iaMrZdYIpFO7epdKBUwLHIxTF8CPDeCQ828zAXYtizrKlEJAtzgfgrw==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      zod: ^3.25.0
+
   zod@3.25.67:
     resolution: {integrity: sha512-idA2YXwpCdqUSKRCACDE6ItZD9TZzy3OZMtpfLoh6oPR47lipysRrJfjzMqFxQ3uJuUPyUeWe1r9vLH33xO/Qw==}
 
@@ -1171,7 +1186,7 @@ snapshots:
   '@biomejs/cli-win32-x64@2.0.0':
     optional: true
 
-  '@carbonteq/fp@0.8.2': {}
+  '@carbonteq/fp@0.8.1': {}
 
   '@colors/colors@1.6.0': {}
 
@@ -1947,6 +1962,8 @@ snapshots:
 
   ts-deepmerge@6.2.1: {}
 
+  ts-pattern@5.7.1: {}
+
   tslib@1.14.1: {}
 
   tsx@4.20.3:
@@ -2001,5 +2018,9 @@ snapshots:
   wrappy@1.0.2: {}
 
   yaml@1.10.2: {}
+
+  zod-validation-error@3.5.2(zod@3.25.67):
+    dependencies:
+      zod: 3.25.67
 
   zod@3.25.67: {}

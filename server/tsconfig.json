@@ -10,7 +10,6 @@
 		"emitDecoratorMetadata": true,
 
 		// checks
-		"noUncheckedIndexedAccess": true,
 		"noImplicitAny": true,
 		"noFallthroughCasesInSwitch": true,
 		"noUnusedParameters": true,
