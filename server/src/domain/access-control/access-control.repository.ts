@@ -8,8 +8,8 @@ import {
 import type { AccessControlEntity } from './access-control.entity'
 
 export abstract class AccessControlRepository extends BaseRepository<AccessControlEntity> {
-	abstract insert(entity: AccessControlEntity): Promise<RepositoryResult<AccessControlEntity, AlreadyExistsError>>
-	abstract update(entity: AccessControlEntity): Promise<RepositoryResult<AccessControlEntity, NotFoundError>>
+	abstract insert(entry: AccessControlEntity): Promise<RepositoryResult<AccessControlEntity, AlreadyExistsError>>
+	abstract update(entry: AccessControlEntity): Promise<RepositoryResult<AccessControlEntity, NotFoundError>>
 
 	// revokes
 	abstract delete(

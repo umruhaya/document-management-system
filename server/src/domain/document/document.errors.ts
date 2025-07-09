@@ -49,7 +49,12 @@ export class DocumentValidationError extends ValidationError {
 	}
 }
 
-export class DocumentGuardViolationError extends GuardViolationError {}
+export class DocumentGuardViolationError extends GuardViolationError {
+	// biome-ignore lint/complexity/noUselessConstructor: Need to make the constructor public
+	public constructor(message: string) {
+		super(message)
+	}
+}
 
 export type DocumentDomainErr =
 	| AlreadyExistsError

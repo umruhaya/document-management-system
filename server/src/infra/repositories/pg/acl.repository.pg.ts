@@ -1,168 +1,117 @@
-import { Result } from '@carbonteq/fp'
-import { and, count, eq } from 'drizzle-orm'
+import { matchOpt, Option, Result } from '@carbonteq/fp'
+import { and, eq } from 'drizzle-orm'
+import { PostgresError } from 'pg-error-enum'
+import { match } from 'ts-pattern'
 import { injectable } from 'tsyringe'
-import { AccessControlListEntity, type DocumentRole } from '~/domain/access-control-entry/access-control-entry.entity'
-import { AclRepository } from '~/domain/access-control-entry/acl.repository'
-import { ACLEntryNotFoundError, DocumentDomainError, UnknownError } from '~/domain/errors'
-import { createULID } from '~/domain/utils/refined.types'
-import { db, table } from '~/infra/database/client'
+import { AccessControlEntity } from '~/domain/access-control/access-control.entity'
+import {
+	AccessControlAlreadyExistsError,
+	AccessControlNotFoundError,
+} from '~/domain/access-control/access-control.errors'
+import { AccessControlRepository } from '~/domain/access-control/access-control.repository'
+import { DocumentNotFoundError } from '~/domain/document/document.errors'
+import type { AlreadyExistsError, InvalidOperation, NotFoundError, RepositoryResult } from '~/hexapp'
+import { DatabaseError, db, table } from '~/infra/database/client'
 import { TryCatchAsync } from '~/utils/trycatch'
 
 @injectable()
-export class AclRepositoryPg extends AclRepository {
-	getByDocumentId(documentId: string): Promise<Result<AccessControlListEntity[], Error>> {
+export class AccessControlRepositoryPg extends AccessControlRepository {
+	insert(entry: AccessControlEntity): Promise<RepositoryResult<AccessControlEntity, AlreadyExistsError>> {
 		return TryCatchAsync({
 			fn: async () => {
-				const entries = await db
-					.select()
-					.from(table.documentAccess)
-					.where(eq(table.documentAccess.documentId, documentId))
-					.execute()
-
-				return Result.all(
-					...entries.map((entry) => AccessControlListEntity.create({ ...entry, id: createULID() })),
-				).mapErr((err) => err[0] as Error)
-			},
-			onError: (error) => {
-				console.debug({ documentId })
-				console.debug(error)
-				return Result.Err(
-					new UnknownError(
-						`ACL fetch failed for documentId: ${documentId}, Details: ${error}`,
-						'Failed acl.getByDocumentId',
-					),
-				)
-			},
-		})
-	}
-
-	getAcl(userId: string, documentId: string): Promise<Result<AccessControlListEntity, Error>> {
-		return TryCatchAsync({
-			fn: async () => {
-				const aclEntry = await db
-					.select()
-					.from(table.documentAccess)
-					.where(and(eq(table.documentAccess.userId, userId), eq(table.documentAccess.documentId, documentId)))
-					.execute()
-					.then((r) => r.at(0))
-				return aclEntry
-					? AccessControlListEntity.create({ ...aclEntry, id: createULID() })
-					: Result.Err(new ACLEntryNotFoundError({ userId, documentId }))
-			},
-			onError: (error) =>
-				Result.Err(
-					new UnknownError(`ACL set failed for documentId: ${documentId}, Details: ${error}`, 'Failed acl.setAcl'),
-				),
-		})
-	}
-
-	private async isOwner(userId: string, documentId: string): Promise<boolean> {
-		return db
-			.select()
-			.from(table.documentAccess)
-			.where(and(eq(table.documentAccess.userId, userId), eq(table.documentAccess.documentId, documentId)))
-			.execute()
-			.then((r) => r.at(0)?.role === 'owner')
-	}
-
-	private async ownerCount(documentId: string): Promise<number> {
-		return db
-			.select({ count: count() })
-			.from(table.documentAccess)
-			.where(and(eq(table.documentAccess.documentId, documentId), eq(table.documentAccess.role, 'owner')))
-			.execute()
-			.then((r) => r.at(0)?.count ?? 0)
-	}
-
-	setAcl(userId: string, documentId: string, role: DocumentRole): Promise<Result<true, Error>> {
-		return TryCatchAsync({
-			fn: async () => {
-				// Only owners can update roles
-				const isOwner = await this.isOwner(userId, documentId)
-				if (!isOwner) {
-					return Result.Err(
-						new DocumentDomainError({ userId, documentId, role }, 'Only an owner can update ACL entries'),
-					)
-				}
-
-				// If demoting/removing owner, ensure at least one owner remains
-				const currentEntry = await db
-					.select()
-					.from(table.documentAccess)
-					.where(and(eq(table.documentAccess.userId, userId), eq(table.documentAccess.documentId, documentId)))
-					.execute()
-					.then((r) => r.at(0))
-
-				if (currentEntry?.role === 'owner' && role !== 'owner') {
-					const ownerCount = await this.ownerCount(documentId)
-					if (ownerCount <= 1) {
-						return Result.Err(
-							new DocumentDomainError({ userId, documentId, role }, 'A document must have at least one owner'),
-						)
-					}
-				}
-
-				const entry = await db
+				return db
 					.insert(table.documentAccess)
-					.values({ userId, documentId, role })
-					.returning()
-					.execute()
-					.then((r) => r.at(0))
-
-				// upsert
-				if (entry === undefined) {
-					await db
-						.update(table.documentAccess)
-						.set({ role })
-						.where(and(eq(table.documentAccess.userId, userId), eq(table.documentAccess.documentId, documentId)))
-				}
-				return Result.Ok(true)
+					.values(entry)
+					.then(() => Result.Ok(entry))
 			},
 			onError: (error) =>
-				Result.Err(
-					new UnknownError(`ACL set failed for documentId: ${documentId}, Details: ${error}`, 'Failed acl.setAcl'),
-				),
+				match(error instanceof DatabaseError && error.code === PostgresError.UNIQUE_VIOLATION)
+					.with(true, () => Result.Err(new AccessControlAlreadyExistsError(JSON.stringify(entry))))
+					.otherwise(() => Result.Err(new Error(JSON.stringify(error)))),
 		})
 	}
 
-	revokeAcl(userId: string, documentId: string): Promise<Result<true, Error>> {
+	update(entry: AccessControlEntity): Promise<RepositoryResult<AccessControlEntity, NotFoundError>> {
 		return TryCatchAsync({
 			fn: async () => {
-				// Only owners can revoke
-				const isOwner = await this.isOwner(userId, documentId)
-				if (!isOwner) {
-					return Result.Err(new DocumentDomainError({ userId, documentId }, 'Only an owner can revoke ACL entries'))
-				}
+				const updatedEntryOpt = await db
+					.update(table.documentAccess)
+					.set(entry)
+					.where(
+						and(eq(table.documentAccess.userId, entry.userId), eq(table.documentAccess.documentId, entry.documentId)),
+					)
+					.returning()
+					.then((r) => Option.fromNullable(r.at(0)))
 
-				// If revoking owner, ensure at least one owner remains
-				const currentEntry = await db
-					.select()
-					.from(table.documentAccess)
-					.where(and(eq(table.documentAccess.userId, userId), eq(table.documentAccess.documentId, documentId)))
-					.execute()
-					.then((r) => r.at(0))
+				return matchOpt(updatedEntryOpt, {
+					Some: (v) => AccessControlEntity.create(v),
+					None: () => Result.Err(new AccessControlNotFoundError(JSON.stringify(entry))),
+				})
+			},
+			onError: (error) => Result.Err(new Error(JSON.stringify(error))),
+		})
+	}
 
-				if (currentEntry?.role === 'owner') {
-					const ownerCount = await this.ownerCount(documentId)
-					if (ownerCount <= 1) {
-						return Result.Err(
-							new DocumentDomainError({ userId, documentId }, 'A document must have at least one owner'),
-						)
-					}
-				}
-
-				const _entry = await db
+	delete(
+		userId: AccessControlEntity['userId'],
+		documentId: AccessControlEntity['documentId'],
+	): Promise<RepositoryResult<true, NotFoundError | InvalidOperation>> {
+		return TryCatchAsync({
+			fn: async () => {
+				const deletedEntryOpt = await db
 					.delete(table.documentAccess)
 					.where(and(eq(table.documentAccess.userId, userId), eq(table.documentAccess.documentId, documentId)))
 					.returning()
-					.execute()
-					.then((r) => r.at(0))
-				return Result.Ok(true)
+					.then((r) => Option.fromNullable(r.at(0)))
+
+				return matchOpt(deletedEntryOpt, {
+					Some: () => Result.Ok(true as const),
+					None: () => Result.Err(new AccessControlNotFoundError(JSON.stringify({ userId, documentId }))),
+				})
 			},
-			onError: (error) =>
-				Result.Err(
-					new UnknownError(`ACL set failed for documentId: ${documentId}, Details: ${error}`, 'Failed acl.setAcl'),
-				),
+			onError: (error) => Result.Err(new Error(JSON.stringify(error))),
+		})
+	}
+
+	fetch(
+		userId: AccessControlEntity['userId'],
+		documentId: AccessControlEntity['documentId'],
+	): Promise<RepositoryResult<AccessControlEntity, NotFoundError>> {
+		return TryCatchAsync({
+			fn: async () => {
+				const entryOpt = await db
+					.select()
+					.from(table.documentAccess)
+					.where(and(eq(table.documentAccess.userId, userId), eq(table.documentAccess.documentId, documentId)))
+					.then((r) => Option.fromNullable(r.at(0)))
+
+				return matchOpt(entryOpt, {
+					Some: (v) => AccessControlEntity.create(v),
+					None: () => Result.Err(new AccessControlNotFoundError(JSON.stringify({ userId, documentId }))),
+				})
+			},
+			onError: (error) => Result.Err(new Error(JSON.stringify(error))),
+		})
+	}
+
+	fetchAllByDocumentId(documentId: string): Promise<RepositoryResult<AccessControlEntity[], NotFoundError>> {
+		return TryCatchAsync({
+			fn: async () => {
+				const [exists, entries] = await Promise.all([
+					db
+						.select()
+						.from(table.documents)
+						.where(eq(table.documents.id, documentId))
+						.execute()
+						.then((r) => r.at(0) !== undefined),
+					db.select().from(table.documentAccess).where(eq(table.documentAccess.documentId, documentId)).execute(),
+				])
+
+				return match(exists)
+					.with(true, () => Result.all(...entries.map(AccessControlEntity.create)).mapErr((err) => err[0]))
+					.otherwise(() => Result.Err(new DocumentNotFoundError(`No Document found with id: ${documentId}`)))
+			},
+			onError: (error) => Result.Err(new Error(JSON.stringify(error))),
 		})
 	}
 }
