@@ -21,13 +21,14 @@ export class DocumentService {
 		@inject('AclRepository') private readonly aclRepo: AccessControlRepository,
 	) {}
 
-	search(
+	async search(
 		userId: string,
 		filters: Partial<{ title: string; fileType: string; tags: string[]; version: number }>,
 		searchOptions: { exlcudeContent: boolean },
 		paginationOptions: PaginationOptions,
 	) {
-		return this.documentRepo.search(userId, filters, searchOptions, paginationOptions)
+		const result = await this.documentRepo.search(userId, filters, searchOptions, paginationOptions)
+		return result.map(docs => ({ ...docs, data: docs.data.map(doc => doc.serialize()) })) 
 	}
 
 	async getById(userId: string, documentId: string): Promise<Result<DocumentEntity, Error>> {
