@@ -20,12 +20,12 @@ export const DocumentCreate = z.object({
 })
 export type DocumentCreateType = z.infer<typeof DocumentCreate>
 export const CreateDocumentResponse = z.object({
-	documentId: z.string(),
+	documentId: z.string().uuid(),
 })
 export type CreateDocumentResponseType = z.infer<typeof CreateDocumentResponse>
 
 // Patch document
-export const DocumentPatchParams = z.object({ id: z.string() })
+export const DocumentPatchParams = z.object({ id: z.string().uuid() })
 export type DocumentPatchParamsType = z.infer<typeof DocumentPatchParams>
 export const DocumentPatch = z.object({
 	title: z.string().optional(),
@@ -39,10 +39,10 @@ export const PatchDocumentResponse = z.object({ updated: z.boolean() })
 export type PatchDocumentResponseType = z.infer<typeof PatchDocumentResponse>
 
 // Get document by ID
-export const GetDocumentByIdParams = z.object({ id: z.string() })
+export const GetDocumentByIdParams = z.object({ id: z.string().uuid() })
 export type GetDocumentByIdParamsType = z.infer<typeof GetDocumentByIdParams>
 export const GetDocumentByIdResponse = z.object({
-	id: z.string(),
+	id: z.string().uuid(),
 	title: z.string(),
 	description: z.string(),
 	fileType: z.string(),
@@ -50,8 +50,8 @@ export const GetDocumentByIdResponse = z.object({
 	size: z.number(),
 	content: z.string(),
 	tags: z.array(z.string()),
-	createdAt: z.string(),
-	updatedAt: z.string(),
+	createdAt: z.date(),
+	updatedAt: z.date(),
 })
 export type GetDocumentByIdResponseType = z.infer<typeof GetDocumentByIdResponse>
 
@@ -68,17 +68,20 @@ export const SearchDocumentsQuery = z.object({
 		.transform((tags) => (tags ? (Array.isArray(tags) ? tags : [tags]) : undefined)),
 	fileType: z.string().optional(),
 	version: z.coerce.number().optional(),
-	exlcudeContent: z.literal('true').default('true').optional(),
+	exlcudeContent: z
+		.literal('true')
+		.default('true')
+		.optional()
+		.transform((x) => x === 'true'),
 })
 export type SearchDocumentsQueryType = z.infer<typeof SearchDocumentsQuery>
 export const SearchDocumentsResponse = z.object({
-	totalItems: z.number(),
+	pageNum: z.number(),
+	pageSize: z.number(),
 	totalPages: z.number(),
-	currentPage: z.number(),
-	perPage: z.number(),
-	items: z.array(
+	data: z.array(
 		z.object({
-			id: z.string(),
+			id: z.string().uuid(),
 			title: z.string(),
 			description: z.string(),
 			fileType: z.string(),
@@ -99,34 +102,41 @@ export type GetDocumentAccessListParamsType = z.infer<typeof GetDocumentAccessLi
 export const GetDocumentAccessListResponse = z.object({
 	access: z.array(
 		z.object({
-			userId: z.string(),
-			documentId: z.string(),
+			userId: z.string().uuid(),
+			documentId: z.string().uuid(),
 			role: z.string(),
 		}),
 	),
 })
 export type GetDocumentAccessListResponseType = z.infer<typeof GetDocumentAccessListResponse>
 
-// Patch document access
-export const PatchDocumentAccessParams = z.object({ documentId: z.string() })
+// Patch document Access
+export const PatchDocumentAccessParams = z.object({ documentId: z.string().uuid() })
 export type PatchDocumentAccessParamsType = z.infer<typeof PatchDocumentAccessParams>
-export const PatchDocumentAccessRequest = z.union([
-	z.object({
-		targetUserId: z.string(),
-		role: z.enum(['viewer', 'editor', 'owner']),
-		remove: z.literal(false),
-	}),
-	z.object({
-		targetUserId: z.string(),
-		remove: z.literal(true),
-	}),
-])
+
+export const PatchDocumentAccessRequest = z.object({
+	userId: z.string().uuid(),
+	role: z.enum(['viewer', 'editor', 'owner']),
+})
 export type PatchDocumentAccessRequestType = z.infer<typeof PatchDocumentAccessRequest>
+
 export const PatchDocumentAccessResponse = z.object({ success: z.boolean() })
 export type PatchDocumentAccessResponseType = z.infer<typeof PatchDocumentAccessResponse>
 
+// Delete Document Access
+export const DeleteDocumentAccessParams = z.object({ documentId: z.string().uuid() })
+export type DeleteDocumentAccessParamsType = z.infer<typeof PatchDocumentAccessParams>
+
+export const DeleteDocumentAccessRequest = z.object({
+	userId: z.string().uuid(),
+})
+export type DeleteDocumentAccessRequestType = z.infer<typeof PatchDocumentAccessRequest>
+
+export const DeleteDocumentAccessResponse = z.object({ success: z.boolean() })
+export type DeleteDocumentAccessResponseType = z.infer<typeof PatchDocumentAccessResponse>
+
 // Create document link
-export const CreateDocumentLinkParams = z.object({ documentId: z.string() })
+export const CreateDocumentLinkParams = z.object({ documentId: z.string().uuid() })
 export type CreateDocumentLinkParamsType = z.infer<typeof CreateDocumentLinkParams>
 
 export const CreateDocumentLinkResponse = z.object({
@@ -136,7 +146,7 @@ export type CreateDocumentLinkResponseType = z.infer<typeof CreateDocumentLinkRe
 
 // Download document by link
 export const DownloadDocumentByLinkQuery = z.object({
-	documentId: z.string(),
+	documentId: z.string().uuid(),
 	method: z.string(),
 	expiresAt: z.coerce.number(),
 	signature: z.string(),

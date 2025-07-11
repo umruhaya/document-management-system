@@ -2,20 +2,22 @@ import type { Result } from '@carbonteq/fp'
 import type { HTTPStatusCode } from '@ts-rest/core'
 import {
 	AlreadyExistsError,
-	AuthenticationError,
 	DomainError,
+	GenericDomainError,
+	InvalidOperation,
 	NotFoundError,
-	UnknownError,
+	UnauthorizedOperation,
 	ValidationError,
-} from '~/domain/errors'
+} from '~/hexapp'
 
 export function mapErrorToStatusCode(error: Error) {
 	if (error instanceof ValidationError) return 400
+	if (error instanceof InvalidOperation) return 400
+	if (error instanceof GenericDomainError) return 400
 	if (error instanceof DomainError) return 400
-	if (error instanceof AuthenticationError) return 401
+	if (error instanceof UnauthorizedOperation) return 401
 	if (error instanceof NotFoundError) return 404
 	if (error instanceof AlreadyExistsError) return 409
-	if (error instanceof UnknownError) return 500
 	return 500
 }
 

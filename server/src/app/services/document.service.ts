@@ -1,115 +1,99 @@
 import { Result } from '@carbonteq/fp'
 import { inject, injectable } from 'tsyringe'
-import { ulid } from 'ulidx'
+import { AccessControlEntity, type DocumentRole } from '~/domain/access-control/access-control.entity'
+import type { AccessControlRepository } from '~/domain/access-control/access-control.repository'
+import { DocumentEntity } from '~/domain/document/document.entity'
+import { DocumentValidationError } from '~/domain/document/document.errors'
+import type { DocumentRepository } from '~/domain/document/document.repository'
+import { ProtectedDocumentsService } from '~/domain/services/protected-documents'
+import { type PaginationOptions, UUID } from '~/hexapp'
 import {
 	DocumentPresignedUrlService,
 	type PresignOptions,
 	type VerificationInput,
 } from '~/infra/services/document-presigned-url.service'
-import type { AccessControlListEntity, DocumentRole } from '~/domain/access-control-entry/access-control-entry.entity'
-import type { AclRepository } from '~/domain/access-control-entry/acl.repository'
-import { DocumentEntity } from '~/domain/document/document.entity'
-import type { DocumentRepository } from '~/domain/document/document.repository'
-import { DocumentNotFoundError, DocumentValidationError, NotFoundError } from '~/domain/errors'
-import type { ULID } from '~/domain/utils/refined.types'
 import type { DocumentCreateType, DocumentPatchParamsType, DocumentPatchType } from '~/presentation/dtos/documents'
-import type { PaginationOptions } from '~/presentation/types'
 
 @injectable()
 export class DocumentService {
 	constructor(
 		@inject('DocumentRepository') private readonly documentRepo: DocumentRepository,
-		@inject('AclRepository') private readonly aclRepo: AclRepository,
+		@inject('AclRepository') private readonly aclRepo: AccessControlRepository,
 	) {}
 
 	search(
 		userId: string,
-		options: PaginationOptions<{
-			title?: string
-			fileType?: string
-			sort?: string
-			tags?: string[]
-			version?: number
-			exlcudeContent?: 'true'
-		}>,
+		filters: Partial<{ title: string; fileType: string; tags: string[]; version: number }>,
+		searchOptions: { exlcudeContent: boolean },
+		paginationOptions: PaginationOptions,
 	) {
-		return this.documentRepo.search(userId, options)
+		return this.documentRepo.search(userId, filters, searchOptions, paginationOptions)
 	}
 
 	async getById(userId: string, documentId: string): Promise<Result<DocumentEntity, Error>> {
-		const result = await this.aclRepo.getAcl(userId, documentId)
+		const result = await this.aclRepo.fetch(UUID.fromTrusted(userId), UUID.fromTrusted(documentId))
 
-		return result.isErr() && result instanceof NotFoundError
-			? // if no acl found, return a Document Not Found Error
-				Result.Err(new DocumentNotFoundError({ documentId }))
-			: // else get the document and return its result
-				result
-					.flatMap((_entry) => this.documentRepo.getById(documentId))
-					.toPromise()
+		return result.flatMap((_entry) => this.documentRepo.fetchById(UUID.fromTrusted(documentId))).toPromise()
 	}
 
 	/** Validate and create document entity, then persist via repository */
 	async create(userId: string, document: DocumentCreateType): Promise<Result<DocumentEntity, Error>> {
-		const now = new Date().toISOString()
-		const serialized = {
-			id: ulid(),
-			createdAt: now,
-			updatedAt: now,
-			title: document.title,
-			description: document.description,
-			fileType: document.fileType,
-			version: 1,
-			size: document.content.length,
-			content: document.content,
-			tags: document.tags ?? [],
-		}
-		const entityRes = DocumentEntity.create(serialized)
-		if (entityRes.isErr()) {
-			return Result.Err(entityRes.unwrapErr())
-		}
-		const docEntity = entityRes.unwrap()
-		return this.documentRepo.create(userId, docEntity)
-	}
-
-	async update(userId: string, document: DocumentPatchParamsType & DocumentPatchType): Promise<Result<true, Error>> {
-		const result = await this.aclRepo.getAcl(userId, document.id)
-		return result
-			.flatMap(async (entry) => {
-				return entry.role === 'owner' || entry.role === 'editor'
-					? this.documentRepo.update({ ...document, id: document.id as ULID })
-					: Result.Err(new DocumentNotFoundError({ documentId: document.id }))
-			})
+		return DocumentEntity.create({ ...document, version: 1, tags: document.tags ?? [], size: document.content.length })
+			.flatMap((doc) => this.documentRepo.insertWithAccessControl(userId, doc))
 			.toPromise()
 	}
 
-	async getAclEntries(documentId: string): Promise<Result<AccessControlListEntity[], Error>> {
-		return this.aclRepo.getByDocumentId(documentId)
+	async update(userId: string, document: DocumentPatchParamsType & DocumentPatchType): Promise<Result<true, Error>> {
+		const result = await this.aclRepo.fetch(UUID.fromTrusted(userId), UUID.fromTrusted(document.id))
+		return result
+			.validate([ProtectedDocumentsService.validateEditAccessForDocument])
+			.mapErr((e) => (Array.isArray(e) ? e[0] : e))
+			.flatMap(() => this.documentRepo.patch({ ...document, id: UUID.fromTrusted(document.id) }))
+			.map(() => true as const)
+			.toPromise()
 	}
 
-	async updateAcl(
-		userId: string,
-		documentId: string,
-		action: { remove: true } | { remove: false; role: DocumentRole },
-	): Promise<Result<true, Error>> {
-		return action.remove
-			? this.aclRepo.revokeAcl(userId, documentId)
-			: this.aclRepo.setAcl(userId, documentId, action.role)
+	async getAclEntries(documentId: string): Promise<Result<AccessControlEntity[], Error>> {
+		return this.aclRepo.fetchAllByDocumentId(documentId)
+	}
+
+	async patchAcl(userId: string, documentId: string, role: DocumentRole): Promise<Result<true, Error>> {
+		return Result.all(
+			// patchEntry
+			AccessControlEntity.create({
+				userId: UUID.fromTrusted(userId),
+				documentId: UUID.fromTrusted(documentId),
+				role,
+			}),
+			// entries
+			await this.aclRepo.fetchAllByDocumentId(UUID.fromTrusted(documentId)),
+		)
+			.flatMap(([patchEntry, entries]) => ProtectedDocumentsService.applyPatchToAccessControlList(patchEntry, entries))
+			.validate([ProtectedDocumentsService.validateEntriesForDocument])
+			.mapErr((e) => (Array.isArray(e) ? e[0] : e))
+			.map(() => true as const)
+	}
+
+	async deleteAcl(userId: string, documentId: string): Promise<Result<true, Error>> {
+		const result = await this.aclRepo.fetchAllByDocumentId(UUID.fromTrusted(documentId))
+		return result
+			.flatMap((entries) => ProtectedDocumentsService.deleteEntryFromAccessControlList(userId, documentId, entries))
+			.validate([ProtectedDocumentsService.validateEntriesForDocument])
+			.mapErr((e) => (Array.isArray(e) ? e[0] : e))
+			.map(() => true as const)
 	}
 
 	async createLink(userId: string, options: PresignOptions): Promise<Result<string, Error>> {
 		// first check if the user has access
-		const result = await this.aclRepo.getAcl(userId, options.documentId)
-		return result.isErr() && result instanceof NotFoundError
-			? // if no acl found, return a Document Not Found Error
-				Result.Err(new DocumentNotFoundError({ documentId: options.documentId }))
-			: // else get the document and return its result
-				result.map((_entry) => DocumentPresignedUrlService.presignUrl(options))
+		const result = await this.aclRepo.fetch(UUID.fromTrusted(userId), UUID.fromTrusted(options.documentId))
+
+		return result.map((_entry) => DocumentPresignedUrlService.presignUrl(options))
 	}
 
 	async getDocumentByLink(input: VerificationInput): Promise<Result<DocumentEntity, Error>> {
 		const verified = DocumentPresignedUrlService.verifySignature(input)
 		return verified
-			? this.documentRepo.getById(input.documentId)
-			: Result.Err(new DocumentValidationError(input, 'Signature Did Not Match'))
+			? this.documentRepo.fetchById(UUID.fromTrusted(input.documentId))
+			: Result.Err(new DocumentValidationError('Signature Did Not Match'))
 	}
 }

@@ -1,6 +1,7 @@
 import mime from 'mime'
 import { container } from 'tsyringe'
 import { DocumentService } from '~/app/services/document.service'
+import { PaginationOptions } from '~/hexapp'
 import { AuthorizationService } from '~/infra/services/authorization.service'
 import type { DocumentsContract } from '~/presentation/contracts/documents'
 import { mapErrorToStatusCode } from '~/presentation/utils/http-mapper'
@@ -38,24 +39,25 @@ export const documentsController: DocumentsContract = {
 
 		const result = await documentService.getById(userId, params.id)
 		return matchResultReturn(result, {
-			Ok: (doc) => ({
-				status: 200,
-				body: { ...doc, createdAt: doc.createdAt.toISOString(), updatedAt: doc.updatedAt.toISOString() },
-			}),
+			Ok: (doc) => ({ status: 200, body: doc.serialize() }),
 			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),
 		})
 	},
 
-	searchDocuments: async ({ query, headers }) => {
+	searchDocuments: async ({ query: q, headers }) => {
 		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
 		if (!userId) return { status: 401, body: 'Invalid or missing token' }
 
-		const result = await documentService.search(userId, {
-			page: query.page,
-			limit: query.limit,
-			sort: query.sort,
-			filters: { ...query },
-		})
+		const result = await PaginationOptions.create({ pageNum: q.page, pageSize: q.limit })
+			.flatMap((paginationOptions) =>
+				documentService.search(
+					userId,
+					{ title: q.title, version: q.version, fileType: q.fileType, tags: q.tags },
+					{ exlcudeContent: q.exlcudeContent },
+					paginationOptions,
+				),
+			)
+			.toPromise()
 		return matchResultReturn(result, {
 			Ok: (docs) => ({ status: 200, body: docs }),
 			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),
@@ -74,8 +76,18 @@ export const documentsController: DocumentsContract = {
 		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
 		if (!userId) return { status: 401, body: 'Invalid or missing token' }
 
-		const action = body.remove ? ({ remove: true } as const) : ({ remove: false, role: body.role } as const)
-		const result = await documentService.updateAcl(body.targetUserId, params.documentId, action)
+		const result = await documentService.patchAcl(body.userId, params.documentId, body.role)
+		return matchResultReturn(result, {
+			Ok: () => ({ status: 200, body: { success: true } }),
+			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),
+		})
+	},
+
+	deleteDocumentAccess: async ({ params, body, headers }) => {
+		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
+		if (!userId) return { status: 401, body: 'Invalid or missing token' }
+
+		const result = await documentService.deleteAcl(body.userId, params.documentId)
 		return matchResultReturn(result, {
 			Ok: () => ({ status: 200, body: { success: true } }),
 			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),

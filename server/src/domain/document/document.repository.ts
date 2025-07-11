@@ -12,6 +12,9 @@ import {
 export abstract class DocumentRepository extends BaseRepository<DocumentEntity> {
 	abstract insert(document: DocumentEntity): Promise<RepositoryResult<DocumentEntity, AlreadyExistsError>>
 	abstract update(document: DocumentEntity): Promise<RepositoryResult<DocumentEntity, NotFoundError>>
+	abstract patch(
+		document: Partial<DocumentEntity> & { id: DocumentEntity['id'] },
+	): Promise<RepositoryResult<DocumentEntity, NotFoundError>>
 	abstract fetchById(documentId: DocumentEntity['id']): Promise<RepositoryResult<DocumentEntity, NotFoundError>>
 
 	abstract insertWithAccessControl(
@@ -21,7 +24,7 @@ export abstract class DocumentRepository extends BaseRepository<DocumentEntity> 
 
 	abstract search(
 		userId: string,
-		filters: Pick<DocumentEntity, 'title' | 'fileType' | 'tags' | 'version'>,
+		filters: Partial<Pick<DocumentEntity, 'title' | 'fileType' | 'tags' | 'version'>>,
 		searchOptions: { exlcudeContent: boolean },
 		paginationOptions: PaginationOptions,
 	): Promise<RepositoryResult<Paginated<DocumentEntity>, InvalidOperation>>

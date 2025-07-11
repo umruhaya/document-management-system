@@ -90,6 +90,26 @@ export class DocumentRepositoryPg extends DocumentRepository {
 		})
 	}
 
+	patch(
+		document: Partial<DocumentEntity> & { id: DocumentEntity['id'] },
+	): Promise<RepositoryResult<DocumentEntity, NotFoundError>> {
+		return TryCatchAsync({
+			fn: async () => {
+				const updatedDocument = await db
+					.update(table.documents)
+					.set(document)
+					.where(eq(table.documents.id, document.id))
+					.returning()
+					.execute()
+					.then((r) => r.at(0))
+				return updatedDocument
+					? DocumentEntity.fromSerialized(updatedDocument)
+					: Result.Err(new DocumentNotFoundError(`No Document Found with ID: ${document.id}`))
+			},
+			onError: (error) => Result.Err(new Error(JSON.stringify(error))),
+		})
+	}
+
 	search(
 		userId: string,
 		filters: Pick<DocumentEntity, 'title' | 'fileType' | 'tags' | 'version'>,
