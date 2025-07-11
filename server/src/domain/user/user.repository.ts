@@ -2,8 +2,11 @@ import { type AlreadyExistsError, BaseRepository, type NotFoundError, type Repos
 import type { UserEntity } from './user.entity'
 
 export abstract class UserRepository extends BaseRepository<UserEntity> {
-	abstract insert(entity: UserEntity): Promise<RepositoryResult<UserEntity, AlreadyExistsError>>
-	abstract update(entity: UserEntity): Promise<RepositoryResult<UserEntity, NotFoundError>>
+	abstract insert(user: UserEntity): Promise<RepositoryResult<UserEntity, AlreadyExistsError>>
+	abstract update(user: UserEntity): Promise<RepositoryResult<UserEntity, NotFoundError>>
+	abstract patch(
+		user: Partial<Omit<UserEntity, 'id'>> & { id: UserEntity['id'] },
+	): Promise<RepositoryResult<UserEntity, NotFoundError>>
 	abstract fetchById(userId: UserEntity['id']): Promise<RepositoryResult<UserEntity, NotFoundError>>
 	abstract fetchByUsername(username: UserEntity['username']): Promise<RepositoryResult<UserEntity, NotFoundError>>
 }

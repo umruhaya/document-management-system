@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@carbonteq/fp':
-        specifier: ^0.8.1
-        version: 0.8.1
+        specifier: ^0.8.2
+        version: 0.8.2
       '@hono/swagger-ui':
         specifier: ^0.5.2
         version: 0.5.2(hono@4.8.0)
@@ -152,8 +152,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@carbonteq/fp@0.8.1':
-    resolution: {integrity: sha512-3MEBjJYbS7zYRbjOU9DM8n69nEhCDB5oUQOsgnz7uLul7QJ8Wrk5PaGrwBehAXuBKLKrKbtrkhcBL0vZTVXoEw==}
+  '@carbonteq/fp@0.8.2':
+    resolution: {integrity: sha512-TgygpDhBb0D05xskb1GWpjE0gDioq7nfD1unSu2/DQatq5iq6LnSLt/+3CmdmcZ/6BMI1ehDrvJTt+T9c/ThOA==}
     engines: {node: '>=18.0.0', npm: '>=8.0.0', yarn: '>=1.22.0'}
 
   '@colors/colors@1.6.0':
@@ -1186,7 +1186,7 @@ snapshots:
   '@biomejs/cli-win32-x64@2.0.0':
     optional: true
 
-  '@carbonteq/fp@0.8.1': {}
+  '@carbonteq/fp@0.8.2': {}
 
   '@colors/colors@1.6.0': {}
 

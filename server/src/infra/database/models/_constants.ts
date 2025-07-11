@@ -1,5 +1,5 @@
 export const len = {
-	ID: 32,
+	ID: 64,
 	MEDIUM: 128,
 	LONG: 1024,
 } as const

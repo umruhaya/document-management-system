@@ -1,7 +1,7 @@
 import 'reflect-metadata'
 import { faker } from '@faker-js/faker'
 import argon2 from 'argon2'
-import { ulid } from 'ulidx'
+import { UUID } from '~/hexapp'
 import { db, table } from '~/infra/database/client'
 import type { DocumentsAccessInsert } from '~/infra/database/models/document-access'
 import type { DocumentsInsert } from '~/infra/database/models/documents'
@@ -28,12 +28,14 @@ async function main() {
 
 	// Seed users
 	const users: UsersInsert[] = Array.from({ length: NUM_USERS }, () => {
-		const id = ulid()
+		const id = String(UUID.init())
 		const username = faker.internet.userName()
 		return { id, username, hashedPassword }
 	})
 	await db.insert(table.users).values(users).execute()
 	console.log(`Inserted ${users.length} users`)
+
+	console.dir(users.slice(0, 5).map((u) => `Username: ${u.username}`))
 
 	// Seed documents and access entries
 	const docs: Array<DocumentsInsert> = []
@@ -46,7 +48,7 @@ async function main() {
 
 		// create all the docs for the specific user
 		for (let i = 0; i < numDocs; i++) {
-			const id = ulid()
+			const id = String(UUID.init())
 			const title = faker.lorem.sentence()
 			const description = faker.lorem.paragraph(1)
 			const content = faker.lorem.paragraphs({ min: MIN_DOCUMENT_CONTENT_PARAS, max: MAX_DOCUMENT_CONTENT_PARAS })
@@ -95,6 +97,7 @@ async function main() {
 }
 
 main().catch((err) => {
-	console.error('Seeding failed:', err)
+	console.error('Seeding failed:')
+	console.dir(err)
 	process.exit(1)
 })
