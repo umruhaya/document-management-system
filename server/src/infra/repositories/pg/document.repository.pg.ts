@@ -65,7 +65,7 @@ export class DocumentRepositoryPg extends DocumentRepository {
 					.execute()
 					.then((r) => r.at(0))
 				return document
-					? DocumentEntity.create(document)
+					? DocumentEntity.fromSerialized(document)
 					: Result.Err(new DocumentNotFoundError(`No Document Found with ID: ${documentId}`))
 			},
 			onError: (error) => Result.Err(new Error(JSON.stringify(error))),
@@ -159,7 +159,7 @@ export class DocumentRepositoryPg extends DocumentRepository {
 
 				const totalPages = Math.ceil(totalItems / pageSize)
 				// map raw rows to domain entities
-				return Result.all(...rawRows.map(DocumentEntity.create))
+				return Result.all(...rawRows.map(DocumentEntity.fromSerialized))
 					.map((docs) => ({
 						data: docs,
 						pageNum,
