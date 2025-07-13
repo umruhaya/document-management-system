@@ -1,6 +1,6 @@
 import { initContract } from '@ts-rest/core'
 import { z } from 'zod'
-import * as dtos from '~/presentation/dtos/users'
+import { UserSchema } from '~/app/dto/users'
 import type { InferContract } from '~/presentation/utils/ts-rest-contract'
 
 const c = initContract()
@@ -12,10 +12,10 @@ export const usersContract = c.router(
 			path: '/users',
 			summary: 'Creates a New User in the system',
 			headers: z.record(z.string()),
-			body: dtos.UserCredentials,
+			body: UserSchema.create,
 			responses: {
-				200: dtos.CreateUserResponse,
-				409: z.string(),
+				200: UserSchema.createResponse,
+				409: z.object({ message: z.string() }),
 			},
 		},
 		updateUser: {
@@ -24,11 +24,11 @@ export const usersContract = c.router(
 			metadata: { jwt: true },
 			summary: "Updates a User's Username and/or Password",
 			headers: z.record(z.string()),
-			body: dtos.UserUpdate,
+			body: UserSchema.patch.omit({ id: true }),
 			responses: {
-				200: dtos.UpdateUserResponse,
-				404: z.string(),
-				500: z.string(),
+				200: UserSchema.patchResponse,
+				404: z.object({ message: z.string() }),
+				500: z.object({ message: z.string() }),
 			},
 		},
 		loginUser: {
@@ -36,10 +36,10 @@ export const usersContract = c.router(
 			path: '/users/token',
 			summary: 'Login and get JWT token',
 			headers: z.record(z.string()),
-			body: dtos.LoginUserRequest,
+			body: UserSchema.login,
 			responses: {
-				200: dtos.LoginUserResponse,
-				401: z.string(),
+				200: UserSchema.loginResponse,
+				401: z.object({ message: z.string() }),
 			},
 		},
 		getMyDetails: {
@@ -49,8 +49,8 @@ export const usersContract = c.router(
 			summary: 'Retrieve Details of a user itself',
 			headers: z.record(z.string()),
 			responses: {
-				200: dtos.GetMyDetailsResponse,
-				404: z.string(),
+				200: UserSchema.meResponse,
+				404: z.object({ message: z.string() }),
 			},
 		},
 		getUserByUsername: {
@@ -58,16 +58,16 @@ export const usersContract = c.router(
 			path: '/users',
 			summary: 'Retrieve Details of a user based on its username',
 			headers: z.record(z.string()),
-			query: dtos.GetUserQuery,
+			query: UserSchema.getByUsername,
 			responses: {
-				200: dtos.GetUserResponse,
-				404: z.string(),
+				200: UserSchema.getByUsernameResponse,
+				404: z.object({ message: z.string() }),
 			},
 		},
 	},
 	{
 		commonResponses: {
-			500: z.string(),
+			500: z.object({ message: z.string() }),
 		},
 	},
 )

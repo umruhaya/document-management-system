@@ -1,5 +1,3 @@
-import type { Result } from '@carbonteq/fp'
-import type { HTTPStatusCode } from '@ts-rest/core'
 import {
 	AlreadyExistsError,
 	DomainError,
@@ -19,27 +17,4 @@ export function mapErrorToStatusCode(error: Error) {
 	if (error instanceof NotFoundError) return 404
 	if (error instanceof AlreadyExistsError) return 409
 	return 500
-}
-
-export const mapResultToHttpResponse: <T, S extends HTTPStatusCode, E extends Error>(
-	result: Result<T, E>,
-	successCode: S,
-	headers?: Record<string, string>,
-) =>
-	| {
-			status: S
-			body: T
-			headers?: Record<string, string>
-	  }
-	| {
-			status: HTTPStatusCode
-			body: string
-			headers?: Record<string, string>
-	  } = (result, successCode, headers) => {
-	if (result.isOk()) {
-		const body = result.unwrap()
-		return { status: successCode, body, headers }
-	}
-	const error = result.unwrapErr()
-	return { status: mapErrorToStatusCode(error), body: error.message, headers }
 }

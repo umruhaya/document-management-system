@@ -1,6 +1,8 @@
 import { Result } from '@carbonteq/fp'
 import argon2 from 'argon2'
+import { match } from 'ts-pattern'
 import { inject, injectable } from 'tsyringe'
+import { type UserDTO, UserSchema } from '~/app/dto/users'
 import { UserEntity } from '~/domain/user/user.entity'
 import type { UserRepository } from '~/domain/user/user.repository'
 import { UserUnauthorizedOperation } from '~/domain/user/users.errors'
@@ -11,41 +13,50 @@ import { AuthorizationService } from '~/infra/services/authorization.service'
 export class UserService {
 	constructor(@inject('UserRepository') private readonly userRepo: UserRepository) {}
 
-	async getById(userId: string): Promise<Result<UserEntity, Error>> {
-		return this.userRepo.fetchById(UUID.fromTrusted(userId))
+	async getById({ id }: UserDTO['me']) {
+		const result = await this.userRepo.fetchById(UUID.fromTrusted(id))
+		return result.map(UserSchema.meResponse.parse)
 	}
 
-	async getByUsername(username: string): Promise<Result<UserEntity, Error>> {
-		return this.userRepo.fetchByUsername(username)
+	async getByUsername({ username }: UserDTO['getByUsername']) {
+		const result = await this.userRepo.fetchByUsername(username)
+		return result.map(UserSchema.getByUsernameResponse.parse)
 	}
 
-	async create(user: { username: string; password: string }): Promise<Result<{ id: string; token: string }, Error>> {
+	async create(user: UserDTO['create']) {
 		const hashedPassword = await argon2.hash(user.password)
 		// validate and create user entity, then persist
 		return UserEntity.create({ username: user.username, hashedPassword })
 			.flatMap((user) => this.userRepo.insert(user))
 			.map((user) => ({
 				id: user.id,
-				token: AuthorizationService.signPayload({ userId: user.id, username: user.username }),
+				jwtToken: AuthorizationService.signPayload({ userId: user.id, username: user.username }),
 			}))
+			.map(UserSchema.createResponse.parse)
 			.toPromise()
 	}
 
-	async update(user: { id: string; username?: string; password?: string }): Promise<Result<true, Error>> {
+	async update(user: UserDTO['patch']) {
 		const hashedPassword = user.password ? await argon2.hash(user.password) : undefined
 		const result = await this.userRepo.patch({ id: UUID.fromTrusted(user.id), username: user.username, hashedPassword })
-		return result.map(() => true as const)
+		return result.map(UserSchema.patchResponse.parse)
 	}
 
-	async login(user: { username: string; password: string }): Promise<Result<{ token: string }, Error>> {
+	async login(user: UserDTO['login']) {
 		const userFromDbResult = await this.userRepo.fetchByUsername(user.username)
 		return userFromDbResult
 			.flatMap(async (userFromDb) => {
-				const matched = await argon2.verify(userFromDb.hashedPassword, user.password)
-				return matched
-					? Result.Ok({ token: AuthorizationService.signPayload({ userId: userFromDb.id, username: user.username }) })
-					: Result.Err(new UserUnauthorizedOperation('username or password is incorrect'))
+				const isPasswordCorrect = await argon2.verify(userFromDb.hashedPassword, user.password)
+				return match(isPasswordCorrect)
+					.with(true, () =>
+						Result.Ok({
+							id: userFromDb.id,
+							jwtToken: AuthorizationService.signPayload({ userId: userFromDb.id, username: user.username }),
+						}),
+					)
+					.otherwise(() => Result.Err(new UserUnauthorizedOperation('username or password is incorrect')))
 			})
+			.map(UserSchema.loginResponse.parse)
 			.toPromise()
 	}
 }
