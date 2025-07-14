@@ -72,6 +72,7 @@ export class DocumentService {
 	}
 
 	async patchAcl(accessEntry: DocumentDTO['patchAccess']) {
+		const { invokerUserId } = accessEntry
 		return Result.all(
 			AccessControlEntity.create({
 				userId: UUID.fromTrusted(accessEntry.userId),
@@ -80,20 +81,22 @@ export class DocumentService {
 			}),
 			await this.aclRepo.fetchAllByDocumentId(UUID.fromTrusted(accessEntry.documentId)),
 		)
-			.flatMap(([patchEntry, entries]) => ProtectedDocumentsService.applyPatchToAccessControlList(patchEntry, entries))
-			.validate([ProtectedDocumentsService.validateEntriesForDocument])
 			.mapErr((e) => (Array.isArray(e) ? e[0] : e))
+			.flatMap(([patchEntry, entries]) =>
+				ProtectedDocumentsService.applyPatchToAccessControlList(invokerUserId, patchEntry, entries),
+			)
+			.flatMap(this.aclRepo.update)
 			.map(() => DocumentSchema.patchAccessResponse.parse(accessEntry))
 			.toPromise()
 	}
 
 	async deleteAcl({ invokerUserId, userId, documentId }: DocumentDTO['deleteAccess']) {
-		// TODO: also check if the invokerUserId has `owner` access to the document
 		const result = await this.aclRepo.fetchAllByDocumentId(UUID.fromTrusted(documentId))
 		return result
-			.flatMap((entries) => ProtectedDocumentsService.deleteEntryFromAccessControlList(userId, documentId, entries))
-			.validate([ProtectedDocumentsService.validateEntriesForDocument])
-			.mapErr((e) => (Array.isArray(e) ? e[0] : e))
+			.flatMap((entries) =>
+				ProtectedDocumentsService.deleteEntryFromAccessControlList(invokerUserId, userId, documentId, entries),
+			)
+			.flatMap(({ userId, documentId }) => this.aclRepo.delete(userId, documentId))
 			.map(() => ({ success: true }) satisfies DocumentDTO['deleteAccessResponse'])
 			.toPromise()
 	}

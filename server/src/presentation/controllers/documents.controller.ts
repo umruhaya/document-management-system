@@ -1,8 +1,6 @@
 import mime from 'mime'
 import { container } from 'tsyringe'
-import { type DocumentDTO, DocumentSchema } from '~/app/dto/documents'
 import { DocumentService } from '~/app/services/document.service'
-import { PaginationOptions } from '~/hexapp'
 import { AuthorizationService } from '~/infra/services/authorization.service'
 import type { DocumentsContract } from '~/presentation/contracts/documents'
 import { mapErrorToStatusCode } from '~/presentation/utils/http-mapper'
