@@ -1,4 +1,5 @@
 import 'reflect-metadata'
+import 'newrelic'
 import { Command } from 'commander'
 import { container } from '~/infra/container'
 import { env } from '~/infra/env'
