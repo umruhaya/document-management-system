@@ -17,7 +17,6 @@
 		"@ts-rest/open-api": "^3.52.1",
 		"argon2": "^0.43.0",
 		"commander": "^14.0.0",
-		"date-fns": "^4.1.0",
 		"drizzle-orm": "^0.44.2",
 		"express": "^5.1.0",
 		"jsonwebtoken": "^9.0.2",
@@ -27,7 +26,6 @@
 		"reflect-metadata": "^0.2.2",
 		"ts-pattern": "^5.7.1",
 		"tsyringe": "^4.10.0",
-		"ulidx": "^2.4.1",
 		"winston": "^3.17.0",
 		"zod": "^3.25.64",
 		"zod-validation-error": "^3.4.1"
