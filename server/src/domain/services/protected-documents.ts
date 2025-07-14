@@ -28,7 +28,7 @@ export class ProtectedDocumentsService {
 	static validateEditAccessForDocument({ role }: AccessControlEntity): Result<boolean, DocumentInvalidOperation> {
 		return role === 'owner' || role === 'editor'
 			? Result.Ok(true)
-			: Result.Err(new DocumentInvalidOperation('Document must have at least one owner entry'))
+			: Result.Err(new DocumentInvalidOperation('You dont have edit access to this document'))
 	}
 
 	static deleteEntryFromAccessControlList(

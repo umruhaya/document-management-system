@@ -25,7 +25,7 @@ export abstract class DocumentRepository extends BaseRepository<DocumentEntity> 
 	abstract search(
 		userId: string,
 		filters: Partial<Pick<DocumentEntity, 'title' | 'fileType' | 'tags' | 'version'>>,
-		searchOptions: { exlcudeContent: boolean },
+		searchOptions: { excludeContent: boolean },
 		paginationOptions: PaginationOptions,
 	): Promise<RepositoryResult<Paginated<DocumentEntity>, InvalidOperation>>
 }

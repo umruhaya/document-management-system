@@ -113,7 +113,7 @@ export class DocumentRepositoryPg extends DocumentRepository {
 	search(
 		userId: string,
 		filters: Pick<DocumentEntity, 'title' | 'fileType' | 'tags' | 'version'>,
-		searchOptions: { exlcudeContent: boolean },
+		searchOptions: { excludeContent: boolean },
 		paginationOptions: PaginationOptions,
 	): Promise<RepositoryResult<Paginated<DocumentEntity>, InvalidOperation>> {
 		return TryCatchAsync({
@@ -144,7 +144,7 @@ export class DocumentRepositoryPg extends DocumentRepository {
 							fileType: table.documents.fileType,
 							version: table.documents.version,
 							size: table.documents.size,
-							content: searchOptions.exlcudeContent ? sql<string>`'NO_CONTENT'` : table.documents.content,
+							content: searchOptions.excludeContent ? sql<string>`'NO_CONTENT'` : table.documents.content,
 							tags: table.documents.tags,
 							createdAt: table.documents.createdAt,
 							updatedAt: table.documents.updatedAt,

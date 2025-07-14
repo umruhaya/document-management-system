@@ -18,7 +18,7 @@ export const usersController: UsersContract = {
 
 	updateUser: async ({ body, headers }) => {
 		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
-		if (!userId) return { status: 401, body: 'Invalid or missing token' }
+		if (!userId) return { status: 401, body: { message: 'Invalid or missing token' } }
 
 		const result = await userService.update({ id: userId, ...body })
 
@@ -38,7 +38,7 @@ export const usersController: UsersContract = {
 
 	getMyDetails: async ({ headers }) => {
 		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
-		if (!userId) return { status: 401, body: 'Invalid or missing token' }
+		if (!userId) return { status: 401, body: { message: 'Invalid or missing token' } }
 		const result = await userService.getById({ id: userId })
 		return matchResultReturn(result, {
 			Ok: (user) => ({ status: 200, body: user }),

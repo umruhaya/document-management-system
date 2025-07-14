@@ -1,5 +1,6 @@
 import mime from 'mime'
 import { container } from 'tsyringe'
+import { type DocumentDTO, DocumentSchema } from '~/app/dto/documents'
 import { DocumentService } from '~/app/services/document.service'
 import { PaginationOptions } from '~/hexapp'
 import { AuthorizationService } from '~/infra/services/authorization.service'
@@ -12,101 +13,97 @@ const documentService = container.resolve(DocumentService)
 export const documentsController: DocumentsContract = {
 	createDocument: async ({ body, headers }) => {
 		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
-		if (!userId) return { status: 401, body: 'Invalid or missing token' }
+		if (!userId) return { status: 401, body: { message: 'Invalid or missing token' } }
 
-		const result = await documentService.create(userId, body)
+		const result = await documentService.create({ userId, ...body })
 		return matchResultReturn(result, {
-			Ok: (doc) => ({ status: 200, body: { documentId: doc.id } }),
-			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),
+			Ok: (doc) => ({ status: 200, body: doc }),
+			Err: (err) => ({ status: mapErrorToStatusCode(err), body: { message: err.message } }),
 		})
 	},
 
 	patchDocument: async ({ body, params, headers }) => {
 		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
-		if (!userId) return { status: 401, body: 'Invalid or missing token' }
+		if (!userId) return { status: 401, body: { message: 'Invalid or missing token' } }
 
-		const document = { ...body, id: params.id }
-		const result = await documentService.update(userId, document)
+		const result = await documentService.update({ userId, ...body, ...params })
 		return matchResultReturn(result, {
-			Ok: () => ({ status: 200, body: { updated: true } }),
-			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),
+			Ok: (doc) => ({ status: 200, body: doc }),
+			Err: (err) => ({ status: mapErrorToStatusCode(err), body: { message: err.message } }),
 		})
 	},
 
 	getDocumentById: async ({ params, headers }) => {
 		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
-		if (!userId) return { status: 401, body: 'Invalid or missing token' }
+		if (!userId) return { status: 401, body: { message: 'Invalid or missing token' } }
 
-		const result = await documentService.getById(userId, params.id)
+		console.debug({ params })
+
+		const result = await documentService.getById({ userId, ...params })
 		return matchResultReturn(result, {
-			Ok: (doc) => ({ status: 200, body: doc.serialize() }),
-			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),
+			Ok: (doc) => ({ status: 200, body: doc }),
+			Err: (err) => ({ status: mapErrorToStatusCode(err), body: { message: err.message } }),
 		})
 	},
 
-	searchDocuments: async ({ query: q, headers }) => {
+	searchDocuments: async ({ query, headers }) => {
 		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
-		if (!userId) return { status: 401, body: 'Invalid or missing token' }
+		if (!userId) return { status: 401, body: { message: 'Invalid or missing token' } }
 
-		const result = await PaginationOptions.create({ pageNum: q.page, pageSize: q.limit })
-			.flatMap((paginationOptions) =>
-				documentService.search(
-					userId,
-					{ title: q.title, version: q.version, fileType: q.fileType, tags: q.tags },
-					{ exlcudeContent: q.exlcudeContent },
-					paginationOptions,
-				),
-			)
-			.toPromise()
+		const result = await documentService.search({ userId, paginationOptions: query, searchOptions: query })
 		return matchResultReturn(result, {
 			Ok: (docs) => ({ status: 200, body: docs }),
-			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),
+			Err: (err) => ({ status: mapErrorToStatusCode(err), body: { message: err.message } }),
 		})
 	},
 
-	getDocumentAccessList: async ({ params }) => {
-		const result = await documentService.getAclEntries(params.documentId)
+	getDocumentAccessList: async ({ params, headers }) => {
+		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
+		if (!userId) return { status: 401, body: { message: 'Invalid or missing token' } }
+
+		const result = await documentService.getAclEntries({ ...params, invokerUserId: userId })
 		return matchResultReturn(result, {
-			Ok: (access) => ({ status: 200, body: { access } }),
-			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),
+			Ok: (access) => ({ status: 200, body: access }),
+			Err: (err) => ({ status: mapErrorToStatusCode(err), body: { message: err.message } }),
 		})
 	},
 
 	patchDocumentAccess: async ({ params, body, headers }) => {
 		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
-		if (!userId) return { status: 401, body: 'Invalid or missing token' }
+		if (!userId) return { status: 401, body: { message: 'Invalid or missing token' } }
 
-		const result = await documentService.patchAcl(body.userId, params.documentId, body.role)
+		const result = await documentService.patchAcl({ invokerUserId: userId, ...params, ...body })
 		return matchResultReturn(result, {
-			Ok: () => ({ status: 200, body: { success: true } }),
-			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),
+			Ok: (entry) => ({ status: 200, body: entry }),
+			Err: (err) => ({ status: mapErrorToStatusCode(err), body: { message: err.message } }),
 		})
 	},
 
 	deleteDocumentAccess: async ({ params, body, headers }) => {
 		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
-		if (!userId) return { status: 401, body: 'Invalid or missing token' }
+		if (!userId) return { status: 401, body: { message: 'Invalid or missing token' } }
 
-		const result = await documentService.deleteAcl(body.userId, params.documentId)
+		const result = await documentService.deleteAcl({ invokerUserId: userId, ...params, ...body })
 		return matchResultReturn(result, {
-			Ok: () => ({ status: 200, body: { success: true } }),
-			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),
+			Ok: (entry) => ({ status: 200, body: entry }),
+			Err: (err) => ({ status: mapErrorToStatusCode(err), body: { message: err.message } }),
 		})
 	},
 
 	createDocumentLink: async ({ params, headers }) => {
 		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
-		if (!userId) return { status: 401, body: 'Invalid or missing token' }
+		if (!userId) return { status: 401, body: { message: 'Invalid or missing token' } }
 
-		const result = await documentService.createLink(userId, {
-			baseUrl: `${headers.host}/documents/signed-url/download`,
+		const result = await documentService.createLink({
+			userId,
 			documentId: params.documentId,
+			baseUrl: `${headers.host}/documents/signed-url/download`,
 			expiresAt: Date.now() + 2 * 60 * 60 * 1000,
 			method: 'get',
 		})
 		return matchResultReturn(result, {
 			Ok: (link) => ({ status: 200, body: { link } }),
-			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),
+			Err: (err) => ({ status: mapErrorToStatusCode(err), body: { message: err.message } }),
 		})
 	},
 
@@ -121,7 +118,7 @@ export const documentsController: DocumentsContract = {
 				}
 				return { status: 200, body: doc.content, headers }
 			},
-			Err: (err) => ({ status: mapErrorToStatusCode(err), body: err.message }),
+			Err: (err) => ({ status: mapErrorToStatusCode(err), body: { message: err.message } }),
 		})
 	},
 }

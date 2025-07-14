@@ -1,6 +1,6 @@
 import { initContract } from '@ts-rest/core'
 import { z } from 'zod'
-import * as dtos from '~/presentation/dtos/documents'
+import { DocumentSchema } from '~/app/dto/documents'
 import type { InferContract } from '~/presentation/utils/ts-rest-contract'
 
 const c = initContract()
@@ -22,11 +22,11 @@ export const documentsContract = c.router(
 			path: '/documents/signed-url/download',
 			summary: 'Download a document using a short-lived link',
 			headers: z.record(z.string()),
-			query: dtos.DownloadDocumentByLinkQuery,
+			query: DocumentSchema.downloadByLink,
 			responses: {
-				200: c.otherResponse({ contentType: 'text/markdown', body: z.string() }),
-				404: z.string(),
-				410: z.string(),
+				200: c.otherResponse({ contentType: 'text/markdown', body: DocumentSchema.downloadByLinkResponse }),
+				404: z.object({ message: z.string() }),
+				410: z.object({ message: z.string() }),
 			},
 		},
 		createDocument: {
@@ -36,37 +36,37 @@ export const documentsContract = c.router(
 			summary: 'Create a new document',
 			headers: z.record(z.string()),
 			description: validFileTypeDescription,
-			body: dtos.DocumentCreate,
+			body: DocumentSchema.create.omit({ userId: true }),
 			responses: {
-				200: dtos.CreateDocumentResponse,
-				401: z.string(),
+				200: DocumentSchema.createResponse,
+				401: z.object({ message: z.string() }),
 			},
 		},
 		patchDocument: {
 			method: 'PATCH',
-			path: '/documents/:id',
+			path: '/documents/:documentId',
 			metadata: { jwt: true },
 			summary: 'Update a document (owner/editor only)',
 			headers: z.record(z.string()),
 			description: validFileTypeDescription,
-			pathParams: dtos.DocumentPatchParams,
-			body: dtos.DocumentPatch,
+			pathParams: DocumentSchema.patch.pick({ documentId: true }),
+			body: DocumentSchema.patch.omit({ userId: true, documentId: true }),
 			responses: {
-				200: dtos.PatchDocumentResponse,
-				403: z.string(),
-				404: z.string(),
+				200: DocumentSchema.patchResponse,
+				403: z.object({ message: z.string() }),
+				404: z.object({ message: z.string() }),
 			},
 		},
 		getDocumentById: {
 			method: 'GET',
-			path: '/documents/:id',
+			path: '/documents/:documentId',
 			metadata: { jwt: true },
 			summary: 'Retrieve Details of a Document if it exists',
 			headers: z.record(z.string()),
-			pathParams: dtos.GetDocumentByIdParams,
+			pathParams: DocumentSchema.getById.pick({ documentId: true }),
 			responses: {
-				200: dtos.GetDocumentByIdResponse,
-				404: z.string(),
+				200: DocumentSchema.getByIdResponse,
+				404: z.object({ message: z.string() }),
 			},
 		},
 		searchDocuments: {
@@ -75,9 +75,12 @@ export const documentsContract = c.router(
 			metadata: { jwt: true },
 			summary: 'Retrieve Documents List By Search Filters',
 			headers: z.record(z.string()),
-			query: dtos.SearchDocumentsQuery,
+			query: z.object({
+				...DocumentSchema.search.shape.searchOptions.shape,
+				...DocumentSchema.search.shape.paginationOptions.shape,
+			}),
 			responses: {
-				200: dtos.SearchDocumentsResponse,
+				200: DocumentSchema.searchResponse,
 			},
 		},
 		getDocumentAccessList: {
@@ -86,11 +89,11 @@ export const documentsContract = c.router(
 			metadata: { jwt: true },
 			summary: 'Get all users who have access to a document, with their usernames and roles',
 			headers: z.record(z.string()),
-			pathParams: dtos.GetDocumentAccessListParams,
+			pathParams: DocumentSchema.patchAccess.pick({ documentId: true }),
 			responses: {
-				200: dtos.GetDocumentAccessListResponse,
-				403: z.string(),
-				404: z.string(),
+				200: DocumentSchema.accessListResponse,
+				403: z.object({ message: z.string() }),
+				404: z.object({ message: z.string() }),
 			},
 		},
 		patchDocumentAccess: {
@@ -99,12 +102,12 @@ export const documentsContract = c.router(
 			metadata: { jwt: true },
 			summary: 'Modify access for a user on a document (add/update). Only owner can perform.',
 			headers: z.record(z.string()),
-			pathParams: dtos.PatchDocumentAccessParams,
-			body: dtos.PatchDocumentAccessRequest,
+			pathParams: DocumentSchema.patchAccess.pick({ documentId: true }),
+			body: DocumentSchema.patchAccess.omit({ invokerUserId: true, documentId: true }),
 			responses: {
-				200: dtos.PatchDocumentAccessResponse,
-				403: z.string(),
-				404: z.string(),
+				200: DocumentSchema.patchAccessResponse,
+				403: z.object({ message: z.string() }),
+				404: z.object({ message: z.string() }),
 			},
 		},
 		deleteDocumentAccess: {
@@ -113,12 +116,12 @@ export const documentsContract = c.router(
 			metadata: { jwt: true },
 			summary: 'Modify access for a user on a document (remove). Only owner can perform.',
 			headers: z.record(z.string()),
-			pathParams: dtos.DeleteDocumentAccessParams,
-			body: dtos.DeleteDocumentAccessRequest,
+			pathParams: DocumentSchema.deleteAccess.pick({ documentId: true }),
+			body: DocumentSchema.deleteAccess.omit({ invokerUserId: true, documentId: true }),
 			responses: {
-				200: dtos.DeleteDocumentAccessResponse,
-				403: z.string(),
-				404: z.string(),
+				200: DocumentSchema.deleteAccessResponse,
+				403: z.object({ message: z.string() }),
+				404: z.object({ message: z.string() }),
 			},
 		},
 		createDocumentLink: {
@@ -127,18 +130,18 @@ export const documentsContract = c.router(
 			metadata: { jwt: true },
 			summary: 'Create a short-lived download link for a document (1 hour expiry)',
 			headers: z.record(z.string()),
-			pathParams: dtos.CreateDocumentLinkParams,
+			pathParams: DocumentSchema.createLink,
 			body: c.noBody(),
 			responses: {
-				200: dtos.CreateDocumentLinkResponse,
-				403: z.string(),
-				404: z.string(),
+				200: DocumentSchema.createLinkResponse,
+				403: z.object({ message: z.string() }),
+				404: z.object({ message: z.string() }),
 			},
 		},
 	},
 	{
 		commonResponses: {
-			500: z.string(),
+			500: z.object({ message: z.string() }),
 		},
 	},
 )
