@@ -8,7 +8,6 @@ export const documents = pgTable('documents', {
 	fileType: varchar('file_type', { length: len.MEDIUM }).notNull(),
 	version: integer('version').default(1).notNull(),
 	size: integer('size_bytes').notNull(),
-	content: text('content').notNull(),
 	tags: varchar('tags', { length: len.MEDIUM }).array().notNull(),
 	createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 	updatedAt: timestamp('updated_at', { mode: 'date' }).defaultNow().notNull(),

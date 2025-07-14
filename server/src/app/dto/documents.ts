@@ -34,7 +34,7 @@ export const DocumentSchema = {
 			tags: true,
 		})
 		.extend(userId),
-	createResponse: document,
+	createResponse: document.omit({ content: true }),
 
 	patch: document
 		.pick({ title: true, description: true, fileType: true, content: true, tags: true })
@@ -60,18 +60,13 @@ export const DocumentSchema = {
 				.transform((tags) => (tags ? (Array.isArray(tags) ? tags : [tags]) : undefined)),
 			fileType: z.string().optional(),
 			version: z.coerce.number().optional(),
-			exlcudeContent: z
-				.literal('true')
-				.default('true')
-				.optional()
-				.transform((x) => x === 'true'),
 		}),
 	}),
 	searchResponse: z.object({
 		pageNum: z.number(),
 		pageSize: z.number(),
 		totalPages: z.number(),
-		data: z.array(document),
+		data: z.array(document.omit({ content: true })),
 	}),
 
 	// Make a clear distinction between invokerUserId (id of user that makes the request) vs the `userId` field in Access Entry Resource

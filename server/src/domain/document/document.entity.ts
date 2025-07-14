@@ -11,7 +11,6 @@ export interface IDocumentEntity {
 	readonly fileType: string
 	readonly version: number
 	readonly size: number
-	readonly content: string
 	readonly tags: string[]
 }
 
@@ -24,7 +23,6 @@ export interface SerializedDocument {
 	fileType: string
 	version: number
 	size: number
-	content: string
 	tags: string[]
 }
 
@@ -35,7 +33,6 @@ export class DocumentEntity extends BaseEntity implements IDocumentEntity {
 	readonly fileType: string
 	readonly version: number
 	readonly size: number
-	readonly content: string
 	readonly tags: string[]
 
 	private constructor(data: Omit<SerializedDocument, 'id' | 'createdAt' | 'updatedAt'>) {
@@ -45,7 +42,6 @@ export class DocumentEntity extends BaseEntity implements IDocumentEntity {
 		this.fileType = data.fileType
 		this.version = data.version
 		this.size = data.size
-		this.content = data.content
 		this.tags = data.tags
 	}
 
@@ -58,7 +54,6 @@ export class DocumentEntity extends BaseEntity implements IDocumentEntity {
 			fileType: this.fileType,
 			version: this.version,
 			size: this.size,
-			content: this.content,
 			tags: this.tags,
 		}
 	}

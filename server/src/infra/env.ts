@@ -10,6 +10,7 @@ export const envSchema = z.object({
 	DATABASE_PASSWORD: z.string().optional(),
 	DATABASE_PORT: z.coerce.number().default(5432),
 
+	DOCUMENTS_BASE_DIR: z.string().default('/tmp/documents'),
 	JWT_SECRET: z.string(),
 	HMAC_SIGNING_KEY: z.string(),
 })

@@ -113,20 +113,18 @@ export class DocumentRepositoryPg extends DocumentRepository {
 	search(
 		userId: string,
 		filters: Pick<DocumentEntity, 'title' | 'fileType' | 'tags' | 'version'>,
-		searchOptions: { excludeContent: boolean },
 		paginationOptions: PaginationOptions,
 	): Promise<RepositoryResult<Paginated<DocumentEntity>, InvalidOperation>> {
 		return TryCatchAsync({
 			fn: async () => {
-				const { pageNum, pageSize } = paginationOptions // .offset option is buddy
+				const { pageNum, pageSize } = paginationOptions
 				const filtersQuery = and(
-					eq(table.documentAccess.userId, userId), // user has access
+					eq(table.documentAccess.userId, userId),
 					filters.title ? ilike(table.documents.title, `%${filters.title}%`) : undefined,
 					filters.tags?.length ? arrayContains(table.documents.tags, filters.tags) : undefined,
 					filters.fileType ? eq(table.documents.fileType, filters.fileType) : undefined,
 				)
 
-				// fetch count and raw rows
 				const [totalItems, rawRows] = await Promise.all([
 					db
 						.select({ count: countDistinct(table.documents.id) })
@@ -144,7 +142,6 @@ export class DocumentRepositoryPg extends DocumentRepository {
 							fileType: table.documents.fileType,
 							version: table.documents.version,
 							size: table.documents.size,
-							content: searchOptions.excludeContent ? sql<string>`'NO_CONTENT'` : table.documents.content,
 							tags: table.documents.tags,
 							createdAt: table.documents.createdAt,
 							updatedAt: table.documents.updatedAt,
@@ -158,7 +155,6 @@ export class DocumentRepositoryPg extends DocumentRepository {
 				])
 
 				const totalPages = Math.ceil(totalItems / pageSize)
-				// map raw rows to domain entities
 				return Result.all(...rawRows.map(DocumentEntity.fromSerialized))
 					.map((docs) => ({
 						data: docs,

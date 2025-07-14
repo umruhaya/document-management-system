@@ -6,6 +6,7 @@ import type { AccessControlRepository } from '~/domain/access-control/access-con
 import { DocumentEntity } from '~/domain/document/document.entity'
 import { DocumentValidationError } from '~/domain/document/document.errors'
 import type { DocumentRepository } from '~/domain/document/document.repository'
+import type { DocumentStoreStrategy } from '~/domain/document/document-store.strategy'
 import { ProtectedDocumentsService } from '~/domain/services/protected-documents'
 import { PaginationOptions, UUID } from '~/hexapp'
 import { DocumentPresignedUrlService } from '~/infra/services/document-presigned-url.service'
@@ -15,18 +16,12 @@ export class DocumentService {
 	constructor(
 		@inject('DocumentRepository') private readonly documentRepo: DocumentRepository,
 		@inject('AclRepository') private readonly aclRepo: AccessControlRepository,
+		@inject('DocumentStoreStrategy') private readonly storeStrategy: DocumentStoreStrategy,
 	) {}
 
 	async search({ userId, searchOptions, paginationOptions: { page, limit } }: DocumentDTO['search']) {
 		return PaginationOptions.create({ pageNum: page, pageSize: limit })
-			.flatMap((paginationOptions) =>
-				this.documentRepo.search(
-					userId,
-					searchOptions,
-					{ excludeContent: searchOptions.exlcudeContent },
-					paginationOptions,
-				),
-			)
+			.flatMap((paginationOptions) => this.documentRepo.search(userId, searchOptions, paginationOptions))
 			.map((docs) => ({
 				...docs,
 				data: docs.data.map((doc) => doc.serialize()).map((d) => ({ ...d, documentId: d.id })),
@@ -40,13 +35,25 @@ export class DocumentService {
 		return result
 			.flatMap((_entry) => this.documentRepo.fetchById(UUID.fromTrusted(documentId)))
 			.map((d) => d.serialize())
-			.map((d) => ({ ...d, documentId: d.id }))
+			.flatMap(async (d) => {
+				const contentRes = await this.storeStrategy.fetchContent(d.id)
+				return contentRes.map((content) => ({ ...d, documentId: d.id, content }))
+			})
 			.map(DocumentSchema.getByIdResponse.parse)
 			.toPromise()
 	}
 
 	async create(document: DocumentDTO['create']) {
-		return DocumentEntity.create({ ...document, version: 1, size: document.content.length })
+		// Save content externally and get contentRef
+		return DocumentEntity.create({
+			...document,
+			version: 1,
+			size: document.content.length,
+		})
+			.flatMap(async (doc) => {
+				const res = await this.storeStrategy.saveContent(doc.id, document.content)
+				return res.map(() => doc)
+			})
 			.flatMap((doc) => this.documentRepo.insertWithAccessControl(document.userId, doc))
 			.map((d) => d.serialize())
 			.map((d) => ({ ...d, documentId: d.id }))
@@ -112,10 +119,17 @@ export class DocumentService {
 		return result.map((_entry) => DocumentPresignedUrlService.presignUrl(input))
 	}
 
-	async getDocumentByLink(args: DocumentDTO['downloadByLink']): Promise<Result<DocumentEntity, Error>> {
+	async getDocumentByLink(args: DocumentDTO['downloadByLink']) {
 		const verified = DocumentPresignedUrlService.verifySignature(args)
-		return verified
-			? this.documentRepo.fetchById(UUID.fromTrusted(args.documentId))
+		const result = verified
+			? await this.documentRepo.fetchById(UUID.fromTrusted(args.documentId))
 			: Result.Err(new DocumentValidationError('Signature Did Not Match'))
+		return result
+			.map((d) => d.serialize())
+			.flatMap(async (d) => {
+				const contentRes = await this.storeStrategy.fetchContent(d.id)
+				return contentRes.map((content) => ({ ...d, documentId: d.id, content }))
+			})
+			.toPromise()
 	}
 }

@@ -9,7 +9,6 @@ const documentSchema = z.object({
 	fileType: z.string(),
 	version: z.number().min(1, 'Version must be at least 1'),
 	size: z.number(),
-	content: z.string().min(1, 'Content must not be empty'),
 	tags: z.array(z.string()),
 })
 

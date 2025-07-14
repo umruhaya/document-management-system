@@ -1,4 +1,6 @@
 import 'reflect-metadata'
+import fs from 'node:fs/promises'
+import * as path from 'node:path'
 import { faker } from '@faker-js/faker'
 import argon2 from 'argon2'
 import { UUID } from '~/hexapp'
@@ -6,6 +8,29 @@ import { db, table } from '~/infra/database/client'
 import type { DocumentsAccessInsert } from '~/infra/database/models/document-access'
 import type { DocumentsInsert } from '~/infra/database/models/documents'
 import type { UsersInsert } from '~/infra/database/models/users'
+import { env } from '~/infra/env'
+import { LocalFSStore } from '../document-stores/local-fs.store'
+
+// seed with local fs
+const documentStore = new LocalFSStore(env.DOCUMENTS_BASE_DIR)
+
+async function clearDirectory(dir: string) {
+	if (dir.startsWith('/tmp/') === false) {
+		throw new Error('Base path should start with /tmp')
+	}
+	try {
+		const entries = await fs.readdir(dir, { withFileTypes: true })
+		await Promise.all(
+			entries.map(async (entry) => {
+				const fullPath = path.join(dir, entry.name)
+				await fs.rm(fullPath, { recursive: true, force: true })
+			}),
+		)
+		console.log(`Cleared all files in directory: ${dir}`)
+	} catch (err) {
+		console.error(`Failed to clear directory ${dir}:`, err)
+	}
+}
 
 async function main() {
 	console.log('Starting DB seeding...')
@@ -14,6 +39,9 @@ async function main() {
 	await db.delete(table.documentAccess).execute()
 	await db.delete(table.documents).execute()
 	await db.delete(table.users).execute()
+
+	// Clean up all files in the base document directory
+	await clearDirectory(env.DOCUMENTS_BASE_DIR)
 
 	// Generate a single password hash for all users
 	const PASSWORD = 'Password123!'
@@ -64,9 +92,11 @@ async function main() {
 				fileType,
 				version,
 				size,
-				content,
 				tags,
 			})
+
+			// asyncronously save the content
+			documentStore.saveContent(id, content).catch(console.error)
 
 			// Owner access (as the user creating the doc should be added as owner the in Access Control List)
 			accessEntries.push({ userId: user.id, documentId: id, role: 'owner' })
