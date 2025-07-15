@@ -1,4 +1,5 @@
 import { matchOpt, Option, Result } from '@carbonteq/fp'
+import { ExponentialBackoff, handleAll, retry, TimeoutStrategy, timeout } from 'cockatiel'
 import { and, eq } from 'drizzle-orm'
 import { PostgresError } from 'pg-error-enum'
 import { match } from 'ts-pattern'
@@ -16,13 +17,17 @@ import { TryCatchAsync } from '~/utils/trycatch'
 
 @injectable()
 export class AccessControlRepositoryPg extends AccessControlRepository {
+	private readonly retryPolicy = retry(handleAll, { maxAttempts: 3, backoff: new ExponentialBackoff() })
+	private readonly timeoutPolicy = timeout(2000, TimeoutStrategy.Aggressive)
+	private runWithPolicy<T>(fn: () => Promise<T>): Promise<T> {
+		return this.retryPolicy.execute(() => this.timeoutPolicy.execute(fn))
+	}
+
 	insert(entry: AccessControlEntity): Promise<RepositoryResult<AccessControlEntity, AlreadyExistsError>> {
 		return TryCatchAsync({
 			fn: async () => {
-				return db
-					.insert(table.documentAccess)
-					.values(entry)
-					.then(() => Result.Ok(entry))
+				await this.runWithPolicy(() => db.insert(table.documentAccess).values(entry))
+				return Result.Ok(entry)
 			},
 			onError: (error) =>
 				match(error instanceof DatabaseError && error.code === PostgresError.UNIQUE_VIOLATION)
@@ -34,14 +39,17 @@ export class AccessControlRepositoryPg extends AccessControlRepository {
 	update(entry: AccessControlEntity): Promise<RepositoryResult<AccessControlEntity, NotFoundError>> {
 		return TryCatchAsync({
 			fn: async () => {
-				const updatedEntryOpt = await db
-					.update(table.documentAccess)
-					.set(entry)
-					.where(
-						and(eq(table.documentAccess.userId, entry.userId), eq(table.documentAccess.documentId, entry.documentId)),
-					)
-					.returning()
-					.then((r) => Option.fromNullable(r.at(0)))
+				const updatedEntryOpt = await this.runWithPolicy(async () => {
+					const result = await db
+						.update(table.documentAccess)
+						.set(entry)
+						.where(
+							and(eq(table.documentAccess.userId, entry.userId), eq(table.documentAccess.documentId, entry.documentId)),
+						)
+						.returning()
+						.then((r) => Option.fromNullable(r.at(0)))
+					return result
+				})
 
 				return matchOpt(updatedEntryOpt, {
 					Some: (v) => AccessControlEntity.create(v),
@@ -58,12 +66,14 @@ export class AccessControlRepositoryPg extends AccessControlRepository {
 	): Promise<RepositoryResult<true, NotFoundError | InvalidOperation>> {
 		return TryCatchAsync({
 			fn: async () => {
-				const deletedEntryOpt = await db
-					.delete(table.documentAccess)
-					.where(and(eq(table.documentAccess.userId, userId), eq(table.documentAccess.documentId, documentId)))
-					.returning()
-					.then((r) => Option.fromNullable(r.at(0)))
-
+				const deletedEntryOpt = await this.runWithPolicy(async () => {
+					const result = await db
+						.delete(table.documentAccess)
+						.where(and(eq(table.documentAccess.userId, userId), eq(table.documentAccess.documentId, documentId)))
+						.returning()
+						.then((r) => Option.fromNullable(r.at(0)))
+					return result
+				})
 				return matchOpt(deletedEntryOpt, {
 					Some: () => Result.Ok(true as const),
 					None: () => Result.Err(new AccessControlNotFoundError(JSON.stringify({ userId, documentId }))),
@@ -79,12 +89,14 @@ export class AccessControlRepositoryPg extends AccessControlRepository {
 	): Promise<RepositoryResult<AccessControlEntity, NotFoundError>> {
 		return TryCatchAsync({
 			fn: async () => {
-				const entryOpt = await db
-					.select()
-					.from(table.documentAccess)
-					.where(and(eq(table.documentAccess.userId, userId), eq(table.documentAccess.documentId, documentId)))
-					.then((r) => Option.fromNullable(r.at(0)))
-
+				const entryOpt = await this.runWithPolicy(async () => {
+					const result = await db
+						.select()
+						.from(table.documentAccess)
+						.where(and(eq(table.documentAccess.userId, userId), eq(table.documentAccess.documentId, documentId)))
+						.then((r) => Option.fromNullable(r.at(0)))
+					return result
+				})
 				return matchOpt(entryOpt, {
 					Some: (v) => AccessControlEntity.create(v),
 					None: () => Result.Err(new AccessControlNotFoundError(JSON.stringify({ userId, documentId }))),
@@ -97,15 +109,17 @@ export class AccessControlRepositoryPg extends AccessControlRepository {
 	fetchAllByDocumentId(documentId: string): Promise<RepositoryResult<AccessControlEntity[], NotFoundError>> {
 		return TryCatchAsync({
 			fn: async () => {
-				const [exists, entries] = await Promise.all([
-					db
-						.select()
-						.from(table.documents)
-						.where(eq(table.documents.id, documentId))
-						.execute()
-						.then((r) => r.at(0) !== undefined),
-					db.select().from(table.documentAccess).where(eq(table.documentAccess.documentId, documentId)).execute(),
-				])
+				const [exists, entries] = await this.runWithPolicy(async () =>
+					Promise.all([
+						db
+							.select()
+							.from(table.documents)
+							.where(eq(table.documents.id, documentId))
+							.execute()
+							.then((r) => r.at(0) !== undefined),
+						db.select().from(table.documentAccess).where(eq(table.documentAccess.documentId, documentId)).execute(),
+					]),
+				)
 
 				return match(exists)
 					.with(true, () => Result.all(...entries.map(AccessControlEntity.create)).mapErr((err) => err[0]))

@@ -1,5 +1,6 @@
 import { Result } from '@carbonteq/fp'
-import { and, arrayContains, countDistinct, eq, ilike, sql } from 'drizzle-orm'
+import { ExponentialBackoff, handleAll, retry, TimeoutStrategy, timeout } from 'cockatiel'
+import { and, arrayContains, countDistinct, eq, ilike } from 'drizzle-orm'
 import { PostgresError } from 'pg-error-enum'
 import { injectable } from 'tsyringe'
 import { DocumentEntity } from '~/domain/document/document.entity'
@@ -18,10 +19,16 @@ import { TryCatchAsync } from '~/utils/trycatch'
 
 @injectable()
 export class DocumentRepositoryPg extends DocumentRepository {
+	private readonly retryPolicy = retry(handleAll, { maxAttempts: 3, backoff: new ExponentialBackoff() })
+	private readonly timeoutPolicy = timeout(2000, TimeoutStrategy.Aggressive)
+	private runWithPolicy<T>(fn: () => Promise<T>): Promise<T> {
+		return this.retryPolicy.execute(() => this.timeoutPolicy.execute(fn))
+	}
+
 	insert(document: DocumentEntity): Promise<RepositoryResult<DocumentEntity, AlreadyExistsError>> {
 		return TryCatchAsync({
 			fn: async () => {
-				await db.insert(table.documents).values(document.serialize())
+				await this.runWithPolicy(() => db.insert(table.documents).values(document.serialize()))
 				return Result.Ok(document)
 			},
 			onError: (error) =>
@@ -39,11 +46,12 @@ export class DocumentRepositoryPg extends DocumentRepository {
 	): Promise<RepositoryResult<DocumentEntity, AlreadyExistsError>> {
 		return TryCatchAsync({
 			fn: async () => {
-				await db.transaction(async (tx) => {
-					await tx.insert(table.documents).values(document.serialize())
-					// create ACL entry so user has owner access
-					await tx.insert(table.documentAccess).values({ userId, documentId: document.id, role: 'owner' })
-				})
+				await this.runWithPolicy(() =>
+					db.transaction(async (tx) => {
+						await tx.insert(table.documents).values(document.serialize())
+						await tx.insert(table.documentAccess).values({ userId, documentId: document.id, role: 'owner' })
+					}),
+				)
 				return Result.Ok(document)
 			},
 			onError: (error) =>
@@ -58,12 +66,14 @@ export class DocumentRepositoryPg extends DocumentRepository {
 	fetchById(documentId: DocumentEntity['id']): Promise<RepositoryResult<DocumentEntity, NotFoundError>> {
 		return TryCatchAsync({
 			fn: async () => {
-				const document = await db
-					.select()
-					.from(table.documents)
-					.where(eq(table.documents.id, documentId))
-					.execute()
-					.then((r) => r.at(0))
+				const document = await this.runWithPolicy(() =>
+					db
+						.select()
+						.from(table.documents)
+						.where(eq(table.documents.id, documentId))
+						.execute()
+						.then((r) => r.at(0)),
+				)
 				return document
 					? DocumentEntity.fromSerialized(document)
 					: Result.Err(new DocumentNotFoundError(`No Document Found with ID: ${documentId}`))
@@ -75,13 +85,15 @@ export class DocumentRepositoryPg extends DocumentRepository {
 	update(document: DocumentEntity): Promise<RepositoryResult<DocumentEntity, NotFoundError>> {
 		return TryCatchAsync({
 			fn: async () => {
-				const updatedDocument = await db
-					.update(table.documents)
-					.set(document)
-					.where(eq(table.documents.id, document.id))
-					.returning()
-					.execute()
-					.then((r) => r.at(0))
+				const updatedDocument = await this.runWithPolicy(() =>
+					db
+						.update(table.documents)
+						.set(document)
+						.where(eq(table.documents.id, document.id))
+						.returning()
+						.execute()
+						.then((r) => r.at(0)),
+				)
 				return updatedDocument
 					? Result.Ok(document)
 					: Result.Err(new DocumentNotFoundError(`No Document Found with ID: ${document.id}`))
@@ -95,13 +107,15 @@ export class DocumentRepositoryPg extends DocumentRepository {
 	): Promise<RepositoryResult<DocumentEntity, NotFoundError>> {
 		return TryCatchAsync({
 			fn: async () => {
-				const updatedDocument = await db
-					.update(table.documents)
-					.set(document)
-					.where(eq(table.documents.id, document.id))
-					.returning()
-					.execute()
-					.then((r) => r.at(0))
+				const updatedDocument = await this.runWithPolicy(() =>
+					db
+						.update(table.documents)
+						.set(document)
+						.where(eq(table.documents.id, document.id))
+						.returning()
+						.execute()
+						.then((r) => r.at(0)),
+				)
 				return updatedDocument
 					? DocumentEntity.fromSerialized(updatedDocument)
 					: Result.Err(new DocumentNotFoundError(`No Document Found with ID: ${document.id}`))
@@ -125,34 +139,36 @@ export class DocumentRepositoryPg extends DocumentRepository {
 					filters.fileType ? eq(table.documents.fileType, filters.fileType) : undefined,
 				)
 
-				const [totalItems, rawRows] = await Promise.all([
-					db
-						.select({ count: countDistinct(table.documents.id) })
-						.from(table.documents)
-						.innerJoin(table.documentAccess, eq(table.documents.id, table.documentAccess.documentId))
-						.where(filtersQuery)
-						.execute()
-						.then((r) => r.at(0)?.count ?? 0),
+				const [totalItems, rawRows] = await this.runWithPolicy(() =>
+					Promise.all([
+						db
+							.select({ count: countDistinct(table.documents.id) })
+							.from(table.documents)
+							.innerJoin(table.documentAccess, eq(table.documents.id, table.documentAccess.documentId))
+							.where(filtersQuery)
+							.execute()
+							.then((r) => r.at(0)?.count ?? 0),
 
-					db
-						.selectDistinctOn([table.documents.id], {
-							id: table.documents.id,
-							title: table.documents.title,
-							description: table.documents.description,
-							fileType: table.documents.fileType,
-							version: table.documents.version,
-							size: table.documents.size,
-							tags: table.documents.tags,
-							createdAt: table.documents.createdAt,
-							updatedAt: table.documents.updatedAt,
-						})
-						.from(table.documents)
-						.innerJoin(table.documentAccess, eq(table.documents.id, table.documentAccess.documentId))
-						.where(filtersQuery)
-						.limit(pageSize)
-						.offset(pageSize * (pageNum - 1))
-						.execute(),
-				])
+						db
+							.selectDistinctOn([table.documents.id], {
+								id: table.documents.id,
+								title: table.documents.title,
+								description: table.documents.description,
+								fileType: table.documents.fileType,
+								version: table.documents.version,
+								size: table.documents.size,
+								tags: table.documents.tags,
+								createdAt: table.documents.createdAt,
+								updatedAt: table.documents.updatedAt,
+							})
+							.from(table.documents)
+							.innerJoin(table.documentAccess, eq(table.documents.id, table.documentAccess.documentId))
+							.where(filtersQuery)
+							.limit(pageSize)
+							.offset(pageSize * (pageNum - 1))
+							.execute(),
+					]),
+				)
 
 				const totalPages = Math.ceil(totalItems / pageSize)
 				return Result.all(...rawRows.map(DocumentEntity.fromSerialized))
