@@ -1,10 +1,10 @@
 import { createExpressEndpoints, initServer } from '@ts-rest/express'
 import express from 'express'
-import { documentsContract } from '~/presentation/contracts/documents'
-import { usersContract } from '~/presentation/contracts/users'
-import { documentsController } from '~/presentation/controllers/documents.controller'
-import { usersController } from '~/presentation/controllers/users.controller'
-import { openapiDocument, swaggerHtml } from '~/presentation/openapi'
+import { documentsContract } from '~/presentation/http/contracts/documents'
+import { usersContract } from '~/presentation/http/contracts/users'
+import { documentsController } from '~/presentation/http/controllers/documents.controller'
+import { usersController } from '~/presentation/http/controllers/users.controller'
+import { openapiDocument, swaggerHtml } from '~/presentation/http/openapi'
 
 const app = express()
 
@@ -14,9 +14,6 @@ app.use((req, _res, next) => {
 	console.log(`[${req.method}] ${req.path}`)
 	next()
 })
-
-// app.use('/users', usersRouter)
-// app.use('/documents', documentsRouter)
 
 app.get('/', (_, res) => {
 	res.send(`<div><h1>DMS Server is Up</h1><a href='/docs'>View Docs</a></div>`)

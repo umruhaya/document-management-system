@@ -1,8 +1,8 @@
 import { SwaggerUI } from '@hono/swagger-ui'
 import { initContract } from '@ts-rest/core'
 import { generateOpenApi } from '@ts-rest/open-api'
-import { documentsContract } from '~/presentation/contracts/documents'
-import { usersContract } from '~/presentation/contracts/users'
+import { documentsContract } from '~/presentation/http/contracts/documents'
+import { usersContract } from '~/presentation/http/contracts/users'
 
 const c = initContract()
 

@@ -1,7 +1,7 @@
 import { initContract } from '@ts-rest/core'
 import { z } from 'zod'
 import { DocumentSchema } from '~/app/dto/documents'
-import type { InferContract } from '~/presentation/utils/ts-rest-contract'
+import type { InferContract } from '~/presentation/http/utils/ts-rest-contract'
 
 const c = initContract()
 

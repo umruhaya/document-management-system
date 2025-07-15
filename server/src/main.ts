@@ -4,7 +4,7 @@ import { Command } from 'commander'
 import { container } from '~/infra/container'
 import { env } from '~/infra/env'
 import { formatStartUpMessage } from '~/infra/utils'
-import { expressApp } from '~/presentation/app'
+import { expressApp } from '~/presentation/http/app'
 
 // initialize the container
 container.isRegistered

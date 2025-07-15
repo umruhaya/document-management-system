@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken'
 import { env } from '~/infra/env'
-import type { JWTContent, JWTDecodedPayload } from '~/presentation/types'
 import logger from '~/infra/logger'
+import type { JWTContent, JWTDecodedPayload } from '~/presentation/http/types'
 
 export class AuthorizationService {
 	static getUserIdFromAuthHeader(authHeader: string | undefined): string | null {

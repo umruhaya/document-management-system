@@ -1,9 +1,9 @@
 import { container } from 'tsyringe'
 import { UserService } from '~/app/services/user.service'
 import { AuthorizationService } from '~/infra/services/authorization.service'
-import type { UsersContract } from '~/presentation/contracts/users'
-import { mapErrorToStatusCode } from '~/presentation/utils/http-mapper'
-import { matchResultReturn } from '~/presentation/utils/result-match'
+import type { UsersContract } from '~/presentation/http/contracts/users'
+import { mapErrorToStatusCode } from '~/presentation/http/utils/http-mapper'
+import { matchResultReturn } from '~/presentation/http/utils/result-match'
 
 const userService = container.resolve(UserService)
 

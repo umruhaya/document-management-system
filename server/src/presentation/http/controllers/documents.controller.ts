@@ -2,9 +2,9 @@ import mime from 'mime'
 import { container } from 'tsyringe'
 import { DocumentService } from '~/app/services/document.service'
 import { AuthorizationService } from '~/infra/services/authorization.service'
-import type { DocumentsContract } from '~/presentation/contracts/documents'
-import { mapErrorToStatusCode } from '~/presentation/utils/http-mapper'
-import { matchResultReturn } from '~/presentation/utils/result-match'
+import type { DocumentsContract } from '~/presentation/http/contracts/documents'
+import { mapErrorToStatusCode } from '~/presentation/http/utils/http-mapper'
+import { matchResultReturn } from '~/presentation/http/utils/result-match'
 
 const documentService = container.resolve(DocumentService)
 
