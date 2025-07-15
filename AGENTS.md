@@ -97,6 +97,7 @@ Located in `src/infra`, this layer provides concrete implementations for externa
 - **Database Client** (`database/client.ts`): Drizzle ORM client configuration for PostgreSQL.
 - **Repositories** (`repositories/pg`): PostgreSQL implementations of domain repository interfaces.
 - **Low-level Services** (`services`): Cross-cutting services (e.g., authorization, presigned URL generation).
+- **Logging** (`logger.ts`): Central Winston logger for infrastructure-level error and event tracking.
 
 ### Presentation Layer
 
@@ -104,7 +105,6 @@ Located in `src/presentation`, this layer handles HTTP interactions and API cont
 
 - **Contracts** (`contracts/*.ts`): Type-safe API schemas powered by `@ts-rest`.
 - **Controllers** (`controllers/*.controller.ts`): Implementation matching each contract operation, delegating to application services.
-- **DTOs** (`dtos/*.ts`): Data transfer objects for request/response shapes.
 - **OpenAPI** (`openapi/index.ts`): Generates Swagger/OpenAPI JSON and HTML UI.
 - **App Setup** (`app.ts`): Express application instantiation, global middleware, health checks, docs routes, and TS-Rest route registration.
 

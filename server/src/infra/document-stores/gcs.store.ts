@@ -2,13 +2,19 @@ import { Result } from '@carbonteq/fp'
 import { Storage } from '@google-cloud/storage'
 import type { DocumentStoreStrategy } from '../../domain/document/document-store.strategy'
 
+import { injectable, inject } from 'tsyringe'
+import { LOGGER_TOKEN, ILogger } from '~/infra/logger'
+
+@injectable()
 export class GCSStore implements DocumentStoreStrategy {
-	private storage: Storage
+	private storage
 	private bucket
 
-	constructor(private bucketName: string) {
+	constructor(
+		@inject(LOGGER_TOKEN) private logger: ILogger,
+	) {
 		this.storage = new Storage()
-		this.bucket = this.storage.bucket(bucketName)
+		this.bucket = this.storage.bucket(process.env.BUCKET_NAME ?? '')
 	}
 
 	async saveContent(ref: string, content: string): Promise<Result<string, Error>> {
@@ -17,6 +23,7 @@ export class GCSStore implements DocumentStoreStrategy {
 			await file.save(content)
 			return Result.Ok(ref)
 		} catch (err) {
+			this.logger.error('GCSStore.saveContent failed', { error: err, ref })
 			return Result.Err(err instanceof Error ? err : new Error(String(err)))
 		}
 	}
@@ -27,6 +34,7 @@ export class GCSStore implements DocumentStoreStrategy {
 			const [data] = await file.download()
 			return Result.Ok(data.toString('utf-8'))
 		} catch (err) {
+			this.logger.error('GCSStore.fetchContent failed', { error: err, ref })
 			return Result.Err(err instanceof Error ? err : new Error(String(err)))
 		}
 	}
@@ -37,6 +45,7 @@ export class GCSStore implements DocumentStoreStrategy {
 			await file.delete()
 			return Result.Ok(true)
 		} catch (err) {
+			this.logger.error('GCSStore.deleteContent failed', { error: err, ref })
 			return Result.Err(err instanceof Error ? err : new Error(String(err)))
 		}
 	}

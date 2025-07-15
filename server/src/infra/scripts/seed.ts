@@ -4,15 +4,16 @@ import * as path from 'node:path'
 import { faker } from '@faker-js/faker'
 import argon2 from 'argon2'
 import { UUID } from '~/hexapp'
+import { container } from '~/infra/container'
 import { db, table } from '~/infra/database/client'
 import type { DocumentsAccessInsert } from '~/infra/database/models/document-access'
 import type { DocumentsInsert } from '~/infra/database/models/documents'
 import type { UsersInsert } from '~/infra/database/models/users'
+import { LocalFSStore } from '~/infra/document-stores/local-fs.store'
 import { env } from '~/infra/env'
-import { LocalFSStore } from '../document-stores/local-fs.store'
 
 // seed with local fs
-const documentStore = new LocalFSStore(env.DOCUMENTS_BASE_DIR)
+const documentStore = container.resolve<LocalFSStore>(LocalFSStore)
 
 async function clearDirectory(dir: string) {
 	if (dir.startsWith('/tmp/') === false) {

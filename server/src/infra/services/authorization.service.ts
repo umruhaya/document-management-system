@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken'
 import { env } from '~/infra/env'
 import type { JWTContent, JWTDecodedPayload } from '~/presentation/types'
+import logger from '~/infra/logger'
 
 export class AuthorizationService {
 	static getUserIdFromAuthHeader(authHeader: string | undefined): string | null {
@@ -17,7 +18,8 @@ export class AuthorizationService {
 	private static decode(token: string): JWTDecodedPayload | null {
 		try {
 			return jwt.verify(token, env.JWT_SECRET) as JWTDecodedPayload
-		} catch {
+		} catch (error) {
+			logger.warn('Failed to decode JWT token', { error, token })
 			return null
 		}
 	}

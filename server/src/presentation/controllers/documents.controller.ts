@@ -35,8 +35,6 @@ export const documentsController: DocumentsContract = {
 		const userId = AuthorizationService.getUserIdFromAuthHeader(headers.authorization)
 		if (!userId) return { status: 401, body: { message: 'Invalid or missing token' } }
 
-		console.debug({ params })
-
 		const result = await documentService.getById({ userId, ...params })
 		return matchResultReturn(result, {
 			Ok: (doc) => ({ status: 200, body: doc }),

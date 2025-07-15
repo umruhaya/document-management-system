@@ -1,5 +1,6 @@
 import crypto from 'node:crypto'
 import { env } from '~/infra/env'
+import logger from '~/infra/logger'
 /**
  * Options for generating a presigned document URL.
  */
@@ -77,7 +78,8 @@ export class DocumentPresignedUrlService {
 
 		try {
 			return crypto.timingSafeEqual(Buffer.from(input.signature), Buffer.from(expectedSignature))
-		} catch {
+		} catch (error) {
+			logger.warn('Error verifying presigned URL signature', { error, input })
 			return false
 		}
 	}
