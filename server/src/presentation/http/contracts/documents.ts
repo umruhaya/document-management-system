@@ -130,7 +130,7 @@ export const documentsContract = c.router(
 			metadata: { jwt: true },
 			summary: 'Create a short-lived download link for a document (1 hour expiry)',
 			headers: z.record(z.string()),
-			pathParams: DocumentSchema.createLink,
+			pathParams: DocumentSchema.createLink.pick({ documentId: true }),
 			body: c.noBody(),
 			responses: {
 				200: DocumentSchema.createLinkResponse,

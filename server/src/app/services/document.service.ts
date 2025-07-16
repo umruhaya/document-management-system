@@ -1,6 +1,18 @@
 import { Result } from '@carbonteq/fp'
 import { inject, injectable } from 'tsyringe'
-import { type DocumentDTO, DocumentSchema } from '~/app/dto/documents'
+import {
+	type AccessListDTO,
+	type CreateDocumentDTO,
+	type CreateLinkDTO,
+	type DeleteAccessDTO,
+	type DeleteAccessResponseDTO,
+	DocumentSchema,
+	type DownloadByLinkDTO,
+	type GetDocumentByIdDTO,
+	type PatchAccessDTO,
+	type PatchDocumentDTO,
+	type SearchDocumentsDTO,
+} from '~/app/dto/documents'
 import { AccessControlEntity } from '~/domain/access-control/access-control.entity'
 import type { AccessControlRepository } from '~/domain/access-control/access-control.repository'
 import { DocumentEntity } from '~/domain/document/document.entity'
@@ -19,7 +31,7 @@ export class DocumentService {
 		@inject('DocumentStoreStrategy') private readonly storeStrategy: DocumentStoreStrategy,
 	) {}
 
-	async search({ userId, searchOptions, paginationOptions: { page, limit } }: DocumentDTO['search']) {
+	async search({ userId, searchOptions, paginationOptions: { page, limit } }: SearchDocumentsDTO) {
 		return PaginationOptions.create({ pageNum: page, pageSize: limit })
 			.flatMap((paginationOptions) => this.documentRepo.search(userId, searchOptions, paginationOptions))
 			.map((docs) => ({
@@ -30,7 +42,7 @@ export class DocumentService {
 			.toPromise()
 	}
 
-	async getById({ userId, documentId }: DocumentDTO['getById']) {
+	async getById({ userId, documentId }: GetDocumentByIdDTO) {
 		const result = await this.aclRepo.fetch(UUID.fromTrusted(userId), UUID.fromTrusted(documentId))
 		return result
 			.flatMap((_entry) => this.documentRepo.fetchById(UUID.fromTrusted(documentId)))
@@ -43,7 +55,7 @@ export class DocumentService {
 			.toPromise()
 	}
 
-	async create(document: DocumentDTO['create']) {
+	async create(document: CreateDocumentDTO) {
 		// Save content externally and get contentRef
 		return DocumentEntity.create({
 			...document,
@@ -61,7 +73,7 @@ export class DocumentService {
 			.toPromise()
 	}
 
-	async update(document: DocumentDTO['patch']) {
+	async update(document: PatchDocumentDTO) {
 		const result = await this.aclRepo.fetch(UUID.fromTrusted(document.userId), UUID.fromTrusted(document.documentId))
 		return result
 			.validate([ProtectedDocumentsService.validateEditAccessForDocument])
@@ -73,12 +85,12 @@ export class DocumentService {
 			.toPromise()
 	}
 
-	async getAclEntries(accessList: DocumentDTO['accessList']) {
+	async getAclEntries(accessList: AccessListDTO) {
 		const result = await this.aclRepo.fetchAllByDocumentId(accessList.documentId)
 		return result.map(DocumentSchema.accessListResponse.parse)
 	}
 
-	async patchAcl(accessEntry: DocumentDTO['patchAccess']) {
+	async patchAcl(accessEntry: PatchAccessDTO) {
 		const { invokerUserId } = accessEntry
 		return Result.all(
 			AccessControlEntity.create({
@@ -97,29 +109,23 @@ export class DocumentService {
 			.toPromise()
 	}
 
-	async deleteAcl({ invokerUserId, userId, documentId }: DocumentDTO['deleteAccess']) {
+	async deleteAcl({ invokerUserId, userId, documentId }: DeleteAccessDTO) {
 		const result = await this.aclRepo.fetchAllByDocumentId(UUID.fromTrusted(documentId))
 		return result
 			.flatMap((entries) =>
 				ProtectedDocumentsService.deleteEntryFromAccessControlList(invokerUserId, userId, documentId, entries),
 			)
 			.flatMap(({ userId, documentId }) => this.aclRepo.delete(userId, documentId))
-			.map(() => ({ success: true }) satisfies DocumentDTO['deleteAccessResponse'])
+			.map(() => ({ success: true }) satisfies DeleteAccessResponseDTO)
 			.toPromise()
 	}
 
-	async createLink(input: {
-		userId: string
-		documentId: string
-		baseUrl: string
-		expiresAt: number
-		method: string
-	}): Promise<Result<string, Error>> {
+	async createLink(input: CreateLinkDTO): Promise<Result<string, Error>> {
 		const result = await this.aclRepo.fetch(UUID.fromTrusted(input.userId), UUID.fromTrusted(input.documentId))
 		return result.map((_entry) => DocumentPresignedUrlService.presignUrl(input))
 	}
 
-	async getDocumentByLink(args: DocumentDTO['downloadByLink']) {
+	async getDocumentByLink(args: DownloadByLinkDTO) {
 		const verified = DocumentPresignedUrlService.verifySignature(args)
 		const result = verified
 			? await this.documentRepo.fetchById(UUID.fromTrusted(args.documentId))

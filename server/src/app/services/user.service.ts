@@ -2,7 +2,8 @@ import { Result } from '@carbonteq/fp'
 import argon2 from 'argon2'
 import { match } from 'ts-pattern'
 import { inject, injectable } from 'tsyringe'
-import { type UserDTO, UserSchema } from '~/app/dto/users'
+import type { CreateUserDTO, GetMyDetailsDTO, GetUserByUsernameDTO, LoginUserDTO, PatchUserDTO } from '~/app/dto/users'
+import { UserSchema } from '~/app/dto/users'
 import { UserEntity } from '~/domain/user/user.entity'
 import type { UserRepository } from '~/domain/user/user.repository'
 import { UserUnauthorizedOperation } from '~/domain/user/users.errors'
@@ -13,17 +14,17 @@ import { AuthorizationService } from '~/infra/services/authorization.service'
 export class UserService {
 	constructor(@inject('UserRepository') private readonly userRepo: UserRepository) {}
 
-	async getById({ id }: UserDTO['me']) {
+	async getById({ id }: GetMyDetailsDTO) {
 		const result = await this.userRepo.fetchById(UUID.fromTrusted(id))
 		return result.map(UserSchema.meResponse.parse)
 	}
 
-	async getByUsername({ username }: UserDTO['getByUsername']) {
+	async getByUsername({ username }: GetUserByUsernameDTO) {
 		const result = await this.userRepo.fetchByUsername(username)
 		return result.map(UserSchema.getByUsernameResponse.parse)
 	}
 
-	async create(user: UserDTO['create']) {
+	async create(user: CreateUserDTO) {
 		const hashedPassword = await argon2.hash(user.password)
 		// validate and create user entity, then persist
 		return UserEntity.create({ username: user.username, hashedPassword })
@@ -36,13 +37,13 @@ export class UserService {
 			.toPromise()
 	}
 
-	async update(user: UserDTO['patch']) {
+	async update(user: PatchUserDTO) {
 		const hashedPassword = user.password ? await argon2.hash(user.password) : undefined
 		const result = await this.userRepo.patch({ id: UUID.fromTrusted(user.id), username: user.username, hashedPassword })
 		return result.map(UserSchema.patchResponse.parse)
 	}
 
-	async login(user: UserDTO['login']) {
+	async login(user: LoginUserDTO) {
 		const userFromDbResult = await this.userRepo.fetchByUsername(user.username)
 		return userFromDbResult
 			.flatMap(async (userFromDb) => {

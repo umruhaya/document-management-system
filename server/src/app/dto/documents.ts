@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import type { InferZodTypesRecursively } from './_utils'
 
 const document = z.object({
 	documentId: z.string().uuid(),
@@ -79,7 +78,13 @@ export const DocumentSchema = {
 	deleteAccess: accessEntry.pick({ userId: true, documentId: true }).extend({ invokerUserId: z.string().uuid() }),
 	deleteAccessResponse: z.object({ success: z.boolean() }),
 
-	createLink: z.object({ documentId: z.string().uuid() }),
+	createLink: z.object({
+		userId: z.string().uuid(),
+		documentId: z.string().uuid(),
+		baseUrl: z.string(),
+		method: z.literal('get'),
+		expiresAt: z.number(),
+	}),
 	createLinkResponse: z.object({ link: z.string() }),
 
 	downloadByLink: z.object({
@@ -91,5 +96,40 @@ export const DocumentSchema = {
 	downloadByLinkResponse: z.string(),
 }
 
-/** Recursively infer types for all entries in DocumentSchema */
-export type DocumentDTO = InferZodTypesRecursively<typeof DocumentSchema>
+// Data Transfer Object (DTO) types inferred from the Zod schemas for Document operations.
+
+// Create Document DTOs
+export type CreateDocumentDTO = z.infer<typeof DocumentSchema.create>
+export type CreateDocumentResponseDTO = z.infer<typeof DocumentSchema.createResponse>
+
+// Patch Document DTOs
+export type PatchDocumentDTO = z.infer<typeof DocumentSchema.patch>
+export type PatchDocumentResponseDTO = z.infer<typeof DocumentSchema.patchResponse>
+
+// Get Document by ID DTOs
+export type GetDocumentByIdDTO = z.infer<typeof DocumentSchema.getById>
+export type GetDocumentByIdResponseDTO = z.infer<typeof DocumentSchema.getByIdResponse>
+
+// Search Documents DTOs
+export type SearchDocumentsDTO = z.infer<typeof DocumentSchema.search>
+export type SearchDocumentsResponseDTO = z.infer<typeof DocumentSchema.searchResponse>
+
+// Access List DTOs
+export type AccessListDTO = z.infer<typeof DocumentSchema.accessList>
+export type AccessListResponseDTO = z.infer<typeof DocumentSchema.accessListResponse>
+
+// Patch Access DTOs
+export type PatchAccessDTO = z.infer<typeof DocumentSchema.patchAccess>
+export type PatchAccessResponseDTO = z.infer<typeof DocumentSchema.patchAccessResponse>
+
+// Delete Access DTOs
+export type DeleteAccessDTO = z.infer<typeof DocumentSchema.deleteAccess>
+export type DeleteAccessResponseDTO = z.infer<typeof DocumentSchema.deleteAccessResponse>
+
+// Create Link DTOs
+export type CreateLinkDTO = z.infer<typeof DocumentSchema.createLink>
+export type CreateLinkResponseDTO = z.infer<typeof DocumentSchema.createLinkResponse>
+
+// Download by Link DTOs
+export type DownloadByLinkDTO = z.infer<typeof DocumentSchema.downloadByLink>
+export type DownloadByLinkResponseDTO = z.infer<typeof DocumentSchema.downloadByLinkResponse>

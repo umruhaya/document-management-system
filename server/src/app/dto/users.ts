@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import type { InferZodTypesRecursively } from './_utils'
 
 const user = z.object({
 	id: z.string().uuid(),
@@ -40,10 +39,24 @@ export const UserSchema = {
 	getByUsernameResponse: user,
 }
 
-/**
- * Recursively infers types for all entries in a DTO object using z.infer.
- * For nested objects, applies inference recursively.
- */
+// Data Transfer Object (DTO) types inferred from the Zod schemas.
 
-// Example usage:
-export type UserDTO = InferZodTypesRecursively<typeof UserSchema>
+// Create User DTOs
+export type CreateUserDTO = z.infer<typeof UserSchema.create>
+export type CreateUserResponseDTO = z.infer<typeof UserSchema.createResponse>
+
+// Login DTOs
+export type LoginUserDTO = z.infer<typeof UserSchema.login>
+export type LoginUserResponseDTO = z.infer<typeof UserSchema.loginResponse>
+
+// Get My Details DTOs
+export type GetMyDetailsDTO = z.infer<typeof UserSchema.me>
+export type GetMyDetailsResponseDTO = z.infer<typeof UserSchema.meResponse>
+
+// Patch User Details DTOs
+export type PatchUserDTO = z.infer<typeof UserSchema.patch>
+export type PatchUserResponseDTO = z.infer<typeof UserSchema.patchResponse>
+
+// Get User by Username DTOs
+export type GetUserByUsernameDTO = z.infer<typeof UserSchema.getByUsername>
+export type GetUserByUsernameResponseDTO = z.infer<typeof UserSchema.getByUsernameResponse>
