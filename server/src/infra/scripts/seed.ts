@@ -3,7 +3,6 @@ import fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { faker } from '@faker-js/faker'
 import argon2 from 'argon2'
-import type { DocumentStoreStrategy } from '~/domain/document/document-store.strategy'
 import { UUID } from '~/hexapp'
 import { container } from '~/infra/container'
 import { db, table } from '~/infra/database/client'
@@ -11,9 +10,10 @@ import type { DocumentsAccessInsert } from '~/infra/database/models/document-acc
 import type { DocumentsInsert } from '~/infra/database/models/documents'
 import type { UsersInsert } from '~/infra/database/models/users'
 import { env } from '~/infra/env'
+import type { FilestoreStrategy } from '~/infra/file-stores/filestore.strategy'
 
 // seed with local fs
-const documentStore = container.resolve<DocumentStoreStrategy>('DocumentStoreStrategy')
+const documentStore = container.resolve<FilestoreStrategy>('FilestoreStrategy')
 
 async function clearDirectory(dir: string) {
 	if (dir.startsWith('/tmp/') === false) {
@@ -29,6 +29,9 @@ async function clearDirectory(dir: string) {
 		)
 		console.log(`Cleared all files in directory: ${dir}`)
 	} catch (err) {
+		if ((err as { code?: string }).code === 'ENOENT') {
+			return // without logging
+		}
 		console.error(`Failed to clear directory ${dir}:`, err)
 	}
 }
@@ -73,14 +76,20 @@ async function main() {
 	// Generate all the users
 	for (const user of users) {
 		// Decide how many docs would be created for this particular user
-		const numDocs = faker.number.int({ min: MIN_DOCS_PER_USER, max: MAX_DOCS_PER_USER })
+		const numDocs = faker.number.int({
+			min: MIN_DOCS_PER_USER,
+			max: MAX_DOCS_PER_USER,
+		})
 
 		// create all the docs for the specific user
 		for (let i = 0; i < numDocs; i++) {
 			const id = String(UUID.init())
 			const title = faker.lorem.sentence()
 			const description = faker.lorem.paragraph(1)
-			const content = faker.lorem.paragraphs({ min: MIN_DOCUMENT_CONTENT_PARAS, max: MAX_DOCUMENT_CONTENT_PARAS })
+			const content = faker.lorem.paragraphs({
+				min: MIN_DOCUMENT_CONTENT_PARAS,
+				max: MAX_DOCUMENT_CONTENT_PARAS,
+			})
 			const fileType = faker.helpers.arrayElement(['text/plain', 'text/markdown'])
 			const version = faker.number.int({ min: 1, max: 20 })
 			const size = Buffer.byteLength(content, 'utf8')

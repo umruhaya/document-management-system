@@ -2,12 +2,12 @@ import fs from 'node:fs/promises'
 import * as path from 'node:path'
 import { Result } from '@carbonteq/fp'
 import { inject, injectable } from 'tsyringe'
-import type { DocumentStoreStrategy } from '~/domain/document/document-store.strategy'
 import { env } from '~/infra/env'
+import type { FilestoreStrategy } from '~/infra/file-stores/filestore.strategy'
 import { type ILogger, LOGGER_TOKEN } from '~/infra/logger'
 
 @injectable()
-export class LocalFSStore implements DocumentStoreStrategy {
+export class LocalFSStore implements FilestoreStrategy {
 	constructor(@inject(LOGGER_TOKEN) private logger: ILogger) {}
 
 	async saveContent(ref: string, content: string): Promise<Result<string, Error>> {
@@ -28,7 +28,10 @@ export class LocalFSStore implements DocumentStoreStrategy {
 			const data = await fs.readFile(filePath, 'utf-8')
 			return Result.Ok(data)
 		} catch (err) {
-			this.logger.error('LocalFSStore.fetchContent failed', { error: err, ref })
+			this.logger.error('LocalFSStore.fetchContent failed', {
+				error: err,
+				ref,
+			})
 			return Result.Err(err instanceof Error ? err : new Error(String(err)))
 		}
 	}
@@ -39,7 +42,10 @@ export class LocalFSStore implements DocumentStoreStrategy {
 			await fs.unlink(filePath)
 			return Result.Ok(true)
 		} catch (err) {
-			this.logger.error('LocalFSStore.deleteContent failed', { error: err, ref })
+			this.logger.error('LocalFSStore.deleteContent failed', {
+				error: err,
+				ref,
+			})
 			return Result.Err(err instanceof Error ? err : new Error(String(err)))
 		}
 	}

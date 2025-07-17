@@ -1,18 +1,15 @@
 import { Result } from '@carbonteq/fp'
 import { Storage } from '@google-cloud/storage'
-import type { DocumentStoreStrategy } from '../../domain/document/document-store.strategy'
-
-import { injectable, inject } from 'tsyringe'
-import { LOGGER_TOKEN, ILogger } from '~/infra/logger'
+import { inject, injectable } from 'tsyringe'
+import { type ILogger, LOGGER_TOKEN } from '~/infra/logger'
+import type { FilestoreStrategy } from '~/infra/file-stores/filestore.strategy'
 
 @injectable()
-export class GCSStore implements DocumentStoreStrategy {
+export class GCSStore implements FilestoreStrategy {
 	private storage
 	private bucket
 
-	constructor(
-		@inject(LOGGER_TOKEN) private logger: ILogger,
-	) {
+	constructor(@inject(LOGGER_TOKEN) private logger: ILogger) {
 		this.storage = new Storage()
 		this.bucket = this.storage.bucket(process.env.BUCKET_NAME ?? '')
 	}

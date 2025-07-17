@@ -9,13 +9,13 @@ import mime from 'mime'
 import pLimit from 'p-limit'
 import { DocumentService } from '~/app/services/document.service'
 import { UserService } from '~/app/services/user.service'
-import type { DocumentStoreStrategy } from '~/domain/document/document-store.strategy'
 import { container } from '~/infra/container'
+import type { FilestoreStrategy } from '~/infra/file-stores/filestore.strategy'
 import logger from '~/infra/logger'
 
 const userService = container.resolve(UserService)
 const documentService = container.resolve(DocumentService)
-const documentStore = container.resolve<DocumentStoreStrategy>('DocumentStoreStrategy')
+const documentStore = container.resolve<FilestoreStrategy>('FilestoreStrategy')
 
 const limit = pLimit(20)
 
@@ -42,10 +42,17 @@ Arguments:
 		// Prompt password securely
 		const password = await promptPassword()
 
-		const authRes = await userService.login({ username: options.username, password })
+		const authRes = await userService.login({
+			username: options.username,
+			password,
+		})
 		authRes
 			.flatMap((user) =>
-				documentService.search({ userId: user.id, searchOptions: {}, paginationOptions: { page: 1, limit: 1000 } }),
+				documentService.search({
+					userId: user.id,
+					searchOptions: {},
+					paginationOptions: { page: 1, limit: 1000 },
+				}),
 			)
 			.map(async (docs) => {
 				const total = docs.data.length

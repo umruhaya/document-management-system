@@ -18,9 +18,9 @@ import type { AccessControlRepository } from '~/domain/access-control/access-con
 import { DocumentEntity } from '~/domain/document/document.entity'
 import { DocumentValidationError } from '~/domain/document/document.errors'
 import type { DocumentRepository } from '~/domain/document/document.repository'
-import type { DocumentStoreStrategy } from '~/domain/document/document-store.strategy'
 import { ProtectedDocumentsService } from '~/domain/services/protected-documents'
 import { PaginationOptions, UUID } from '~/hexapp'
+import type { FilestoreStrategy } from '~/infra/file-stores/filestore.strategy'
 import { DocumentPresignedUrlService } from '~/infra/services/document-presigned-url.service'
 
 @injectable()
@@ -28,7 +28,7 @@ export class DocumentService {
 	constructor(
 		@inject('DocumentRepository') private readonly documentRepo: DocumentRepository,
 		@inject('AclRepository') private readonly aclRepo: AccessControlRepository,
-		@inject('DocumentStoreStrategy') private readonly storeStrategy: DocumentStoreStrategy,
+		@inject('FilestoreStrategy') private readonly storeStrategy: FilestoreStrategy,
 	) {}
 
 	async search({ userId, searchOptions, paginationOptions: { page, limit } }: SearchDocumentsDTO) {
@@ -49,7 +49,11 @@ export class DocumentService {
 			.map((d) => d.serialize())
 			.flatMap(async (d) => {
 				const contentRes = await this.storeStrategy.fetchContent(d.id)
-				return contentRes.map((content) => ({ ...d, documentId: d.id, content }))
+				return contentRes.map((content) => ({
+					...d,
+					documentId: d.id,
+					content,
+				}))
 			})
 			.map(DocumentSchema.getByIdResponse.parse)
 			.toPromise()
@@ -78,7 +82,12 @@ export class DocumentService {
 		return result
 			.validate([ProtectedDocumentsService.validateEditAccessForDocument])
 			.mapErr((e) => (Array.isArray(e) ? e[0] : e))
-			.flatMap(() => this.documentRepo.patch({ ...document, id: UUID.fromTrusted(document.documentId) }))
+			.flatMap(() =>
+				this.documentRepo.patch({
+					...document,
+					id: UUID.fromTrusted(document.documentId),
+				}),
+			)
 			.map((d) => d.serialize())
 			.map((d) => ({ ...d, documentId: d.id }))
 			.map(DocumentSchema.patchResponse.parse)
@@ -134,7 +143,11 @@ export class DocumentService {
 			.map((d) => d.serialize())
 			.flatMap(async (d) => {
 				const contentRes = await this.storeStrategy.fetchContent(d.id)
-				return contentRes.map((content) => ({ ...d, documentId: d.id, content }))
+				return contentRes.map((content) => ({
+					...d,
+					documentId: d.id,
+					content,
+				}))
 			})
 			.toPromise()
 	}
